@@ -313,3 +313,23 @@ Future<Map<String, dynamic>?> getUserData() async {
     return null;
   }
 }
+
+/// Lấy User ID (Mã người dùng/Buyer ID) đã lưu
+Future<String?> getUserId() async {
+  try {
+    final userData = await getUserData();
+    if (userData != null) {
+      // Ưu tiên các key ID phổ biến từ API
+      // Hỗ trợ cả người dùng chung (user_id, ma_nguoi_dung) và người mua (ma_nguoi_mua, buyer_id)
+      return userData['user_id'] ??
+          userData['ma_nguoi_dung'] ??
+          userData['ma_nguoi_mua'] ??
+          userData['buyer_id'] ??
+          userData['sub'];
+    }
+    return null;
+  } catch (e) {
+    print('[AUTH] ❌ Lỗi lấy User ID: $e');
+    return null;
+  }
+}
