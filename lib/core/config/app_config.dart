@@ -1,4 +1,4 @@
-/// Cấu hình toàn cục cho ứng dụng
+/// Cấu hình toàn cục cho ứng dụng DNGO - Đi Chợ Online
 /// Chứa các thông tin về môi trường, API, timeout, etc.
 class AppConfig {
   // Singleton pattern
@@ -12,37 +12,46 @@ class AppConfig {
     defaultValue: 'development',
   );
 
-  // API Configuration
+  // --- API Configuration (Cập nhật sang DNGO) ---
+  // Base URL chính của server
   static const String baseUrl = String.fromEnvironment(
     'BASE_URL',
-    defaultValue: 'https://subtle-seat-475108-v5.et.r.appspot.com/api',
+    defaultValue: 'http://207.180.233.84:8000/api',
   );
 
-  // API Endpoints
-  static const String authLoginEndpoint = '/auth/login';
-  static const String authRegisterEndpoint = '/auth/register';
-  static const String authLogoutEndpoint = '/auth/logout';
-  static const String authRefreshEndpoint = '/auth/refresh';
-  static const String authMeEndpoint = '/auth/me';
+  // Base URL cho hình ảnh (Domain chính)
+  static const String imageBaseUrl = 'http://207.180.233.84:8000';
 
+  // Định nghĩa các Base URL theo Role (Dựa trên tài liệu hướng dẫn cập nhật)
+  static const String authBaseUrl = '$baseUrl/auth';
+  static const String buyerBaseUrl = '$baseUrl/buyer';
+  static const String sellerBaseUrl = '$baseUrl/seller';
+  static const String adminBaseUrl = '$baseUrl/market-manager';
+
+  // --- API Endpoints (Khớp với Swagger DNGO) ---
+  static const String authLoginEndpoint = '/login';
+  static const String authRegisterEndpoint = '/register';
+  static const String authLogoutEndpoint = '/logout';
+  static const String authRefreshEndpoint = '/refresh';
+  static const String authMeEndpoint = '/me';
+
+  // Các cấu hình thời gian (Giữ nguyên)
   static const int connectTimeout = 30000; // 30 seconds
   static const int receiveTimeout = 30000; // 30 seconds
   static const int sendTimeout = 30000; // 30 seconds
 
   // App Information
-  static const String appName = 'Online Market';
+  static const String appName = 'DNGO - Đi Chợ Online';
   static const String appVersion = '1.0.0';
   static const String appBuildNumber = '1';
 
-  // Pagination
+  // Pagination & Cache (Giữ nguyên)
   static const int defaultPageSize = 20;
   static const int maxPageSize = 100;
+  static const int cacheMaxAge = 3600; 
+  static const int maxCacheSize = 50 * 1024 * 1024; 
 
-  // Cache
-  static const int cacheMaxAge = 3600; // 1 hour in seconds
-  static const int maxCacheSize = 50 * 1024 * 1024; // 50 MB
-
-  // Authentication
+  // Authentication Keys
   static const String tokenKey = 'auth_token';
   static const String refreshTokenKey = 'refresh_token';
   static const String userKey = 'user_data';
@@ -51,24 +60,23 @@ class AppConfig {
   static const bool enableAnalytics = true;
   static const bool enableCrashReporting = true;
   static const bool enableDebugMode = true;
-  static const bool enableApiLogging = true; // Log API requests/responses
+  static const bool enableApiLogging = true;
 
-  // Check if in development mode
+  // Check environment helpers
   bool get isDevelopment => environment == 'development';
   bool get isProduction => environment == 'production';
   bool get isStaging => environment == 'staging';
 
-  // Get full API URL
+  /// Lấy Full API URL cho các endpoint chung
   String getApiUrl(String endpoint) {
-    // Remove leading slash if present to avoid double slashes
     final cleanEndpoint = endpoint.startsWith('/') ? endpoint : '/$endpoint';
     return '$baseUrl$cleanEndpoint';
   }
 
-  // Get full auth login URL
-  static String get fullAuthLoginUrl => '$baseUrl$authLoginEndpoint';
-  static String get fullAuthRegisterUrl => '$baseUrl$authRegisterEndpoint';
-  static String get fullAuthLogoutUrl => '$baseUrl$authLogoutEndpoint';
-  static String get fullAuthRefreshUrl => '$baseUrl$authRefreshEndpoint';
-  static String get fullAuthMeUrl => '$baseUrl$authMeEndpoint';
+  // --- Getters cho Authentication (Sử dụng authBaseUrl) ---
+  static String get fullAuthLoginUrl => '$authBaseUrl$authLoginEndpoint';
+  static String get fullAuthRegisterUrl => '$authBaseUrl$authRegisterEndpoint';
+  static String get fullAuthLogoutUrl => '$authBaseUrl$authLogoutEndpoint';
+  static String get fullAuthRefreshUrl => '$authBaseUrl$authRefreshEndpoint';
+  static String get fullAuthMeUrl => '$authBaseUrl$authMeEndpoint';
 }

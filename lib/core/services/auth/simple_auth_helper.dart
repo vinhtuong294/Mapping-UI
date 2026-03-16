@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../config/app_config.dart';
 
 /// Helper đơn giản để xử lý đăng nhập với error handling và timeout
 /// 
@@ -13,9 +14,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// await logOut();
 /// ```
 class SimpleAuthHelper {
-  // API Configuration
-  static const String _loginUrl = 'https://subtle-seat-475108-v5.et.r.appspot.com/api/auth/login';
-  static const int _timeoutSeconds = 30; // Tăng lên 30 giây vì API phản hồi chậm
+  // API Configuration - Đã chuyển sang AppConfig
+  static String get _loginUrl => AppConfig.fullAuthLoginUrl;
+  static const int _timeoutSeconds = 30;
   
   // SharedPreferences keys
   static const String _tokenKey = 'auth_token';
@@ -39,14 +40,14 @@ Future<bool> logIn(BuildContext context, String username, String password) async
   print('[LOGIN] 🔐 Bắt đầu đăng nhập - username: $username');
   
   try {
-    // Prepare request body
-    final requestBody = {
+    // 2. DNGO yêu cầu JSON: Sử dụng jsonEncode
+    final requestBody = jsonEncode({
       'ten_dang_nhap': username,
       'mat_khau': password,
-    };
+    });
     
     print('[LOGIN] 📤 Sending request to: ${SimpleAuthHelper._loginUrl}');
-    print('[LOGIN] 📤 Request body: ${jsonEncode(requestBody)}');
+    print('[LOGIN] 📤 Request body (JSON): $requestBody');
     
     // Send POST request with timeout
     final response = await http.post(
@@ -55,7 +56,7 @@ Future<bool> logIn(BuildContext context, String username, String password) async
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      body: jsonEncode(requestBody),
+      body: requestBody,
     ).timeout(
       Duration(seconds: SimpleAuthHelper._timeoutSeconds),
       onTimeout: () {

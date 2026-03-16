@@ -24,6 +24,9 @@ class AuthService {
     required String password,
     required String fullName,
     String role = 'nguoi_mua',
+    String gioiTinh = 'M',
+    String sdt = '0123456789',
+    String diaChi = 'Chưa cập nhật',
   }) async {
     final registerUrl = AppConfig.fullAuthRegisterUrl;
     
@@ -41,6 +44,9 @@ class AuthService {
         'mat_khau': password,
         'ten_nguoi_dung': fullName,
         'role': role,
+        'gioi_tinh': gioiTinh,
+        'sdt': sdt,
+        'dia_chi': diaChi,
       });
 
       if (AppConfig.enableApiLogging) {
@@ -118,7 +124,7 @@ class AuthService {
     }
   }
 
-  /// Đăng nhập với username và password
+  /// Đăng nhập với username và password (DNGO API - Yêu cầu Form-Data)
   Future<AuthResponse> login({
     required String username,
     required String password,
@@ -126,23 +132,22 @@ class AuthService {
     final loginUrl = AppConfig.fullAuthLoginUrl;
     
     if (AppConfig.enableApiLogging) {
-      AppLogger.info('🔐 [AUTH] Đang đăng nhập...');
+      AppLogger.info('🔐 [AUTH] Đang đăng nhập hệ thống DNGO...');
       AppLogger.info('📡 [AUTH] URL: $loginUrl');
       AppLogger.info('👤 [AUTH] Username: $username');
     }
 
     try {
-      // Prepare request body
       final body = jsonEncode({
         'ten_dang_nhap': username,
         'mat_khau': password,
       });
 
       if (AppConfig.enableApiLogging) {
-        AppLogger.info('📤 [AUTH] Request body: $body');
+        AppLogger.info('📤 [AUTH] Request body (JSON): $body');
       }
 
-      // Send POST request
+      // Gửi POST request dưới dạng JSON
       final response = await _client.post(
         Uri.parse(loginUrl),
         headers: {

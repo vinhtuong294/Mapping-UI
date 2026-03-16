@@ -1,3 +1,5 @@
+import '../config/app_config.dart';
+
 /// Model cho chi tiết nguyên liệu
 class NguyenLieuDetailModel {
   final String maNguyenLieu;
@@ -26,16 +28,16 @@ class NguyenLieuDetailModel {
 
   factory NguyenLieuDetailModel.fromJson(Map<String, dynamic> json) {
     return NguyenLieuDetailModel(
-      maNguyenLieu: json['ma_nguyen_lieu'] as String,
-      tenNguyenLieu: json['ten_nguyen_lieu'] as String,
-      donVi: json['don_vi'] as String?,
-      maNhomNguyenLieu: json['ma_nhom_nguyen_lieu'] as String,
-      tenNhomNguyenLieu: json['ten_nhom_nguyen_lieu'] as String,
-      soGianHang: (json['so_gian_hang'] as num).toInt(),
+      maNguyenLieu: (json['ma_nguyen_lieu'] ?? json['id'] ?? '').toString(),
+      tenNguyenLieu: (json['ten_nguyen_lieu'] ?? json['name'] ?? '').toString(),
+      donVi: json['don_vi']?.toString(),
+      maNhomNguyenLieu: (json['ma_nhom_nguyen_lieu'] ?? json['category_id'] ?? '').toString(),
+      tenNhomNguyenLieu: (json['ten_nhom_nguyen_lieu'] ?? json['category_name'] ?? '').toString(),
+      soGianHang: (json['so_gian_hang'] as num?)?.toInt() ?? 0,
       giaGoc: json['gia_goc'] != null ? (json['gia_goc'] as num).toDouble() : null,
       giaCuoi: json['gia_cuoi']?.toString(),
-      ngayCapNhatMoiNhat: json['ngay_cap_nhat_moi_nhat'] as String?,
-      hinhAnhMoiNhat: json['hinh_anh_moi_nhat'] as String?,
+      ngayCapNhatMoiNhat: json['ngay_cap_nhat_moi_nhat']?.toString() ?? json['ngay_cap_nhat']?.toString(),
+      hinhAnhMoiNhat: _parseImageUrl(json['hinh_anh_moi_nhat'] ?? json['hinh_anh']),
     );
   }
 }
@@ -71,16 +73,16 @@ class SellerModel {
 
   factory SellerModel.fromJson(Map<String, dynamic> json) {
     return SellerModel(
-      maGianHang: json['ma_gian_hang'] as String,
-      tenGianHang: json['ten_gian_hang'] as String,
-      viTri: json['vi_tri'] as String,
-      maCho: json['ma_cho'] as String,
+      maGianHang: (json['ma_gian_hang'] ?? json['id'] ?? '').toString(),
+      tenGianHang: (json['ten_gian_hang'] ?? json['shop_name'] ?? '').toString(),
+      viTri: (json['vi_tri'] ?? json['location'] ?? '').toString(),
+      maCho: (json['ma_cho'] ?? json['market_id'] ?? '').toString(),
       giaGoc: json['gia_goc'] != null ? (json['gia_goc'] as num).toDouble() : null,
       giaCuoi: json['gia_cuoi']?.toString(),
-      hinhAnh: json['hinh_anh'] as String?,
-      ngayCapNhat: json['ngay_cap_nhat'] as String?,
-      soLuongBan: (json['so_luong_ban'] as num).toInt(),
-      donViBan: json['don_vi_ban'] as String?,
+      hinhAnh: _parseImageUrl(json['hinh_anh']),
+      ngayCapNhat: json['ngay_cap_nhat']?.toString(),
+      soLuongBan: (json['so_luong_ban'] as num?)?.toInt() ?? 0,
+      donViBan: json['don_vi_ban']?.toString(),
     );
   }
 }
@@ -99,9 +101,9 @@ class NguyenLieuDetailResponse {
 
   factory NguyenLieuDetailResponse.fromJson(Map<String, dynamic> json) {
     return NguyenLieuDetailResponse(
-      success: json['success'] as bool,
-      detail: NguyenLieuDetailModel.fromJson(json['detail'] as Map<String, dynamic>),
-      sellers: SellersData.fromJson(json['sellers'] as Map<String, dynamic>),
+      success: json['success'] as bool? ?? true,
+      detail: NguyenLieuDetailModel.fromJson(json['detail'] as Map<String, dynamic>? ?? json['data'] as Map<String, dynamic>? ?? {}),
+      sellers: SellersData.fromJson(json['sellers'] as Map<String, dynamic>? ?? json['data'] as Map<String, dynamic>? ?? {}),
     );
   }
 }
@@ -142,10 +144,17 @@ class SellersMeta {
 
   factory SellersMeta.fromJson(Map<String, dynamic> json) {
     return SellersMeta(
-      page: (json['page'] as num).toInt(),
-      limit: (json['limit'] as num).toInt(),
-      total: (json['total'] as num).toInt(),
-      hasNext: json['hasNext'] as bool,
+      page: (json['page'] as num?)?.toInt() ?? 1,
+      limit: (json['limit'] as num?)?.toInt() ?? 12,
+      total: (json['total'] as num?)?.toInt() ?? 0,
+      hasNext: json['hasNext'] as bool? ?? false,
     );
   }
+}
+
+String _parseImageUrl(dynamic value) {
+  if (value == null || value.toString().isEmpty) return '';
+  final path = value.toString();
+  if (path.startsWith('http')) return path;
+  return '${AppConfig.imageBaseUrl}${path.startsWith('/') ? '' : '/'}$path';
 }

@@ -3,13 +3,14 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/nguyen_lieu_model.dart';
 import '../models/nguyen_lieu_detail_model.dart';
+import '../config/app_config.dart';
 import '../error/exceptions.dart';
 import 'auth/auth_service.dart';
 import '../dependency/injection.dart';
 
 /// Service để fetch danh sách nguyên liệu
 class NguyenLieuService {
-  static const String baseUrl = 'https://subtle-seat-475108-v5.et.r.appspot.com/api/buyer';
+  static const String baseUrl = AppConfig.buyerBaseUrl;
   final AuthService _authService = getIt<AuthService>();
 
   /// Lấy danh sách nguyên liệu

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../config/app_config.dart';
 import '../models/danh_muc_nguyen_lieu_model.dart';
 import '../error/exceptions.dart';
 import 'auth/auth_service.dart';
@@ -7,7 +8,7 @@ import '../dependency/injection.dart';
 
 /// Service để fetch danh mục nguyên liệu
 class DanhMucNguyenLieuService {
-  static const String baseUrl = 'https://subtle-seat-475108-v5.et.r.appspot.com/api/buyer';
+  static const String baseUrl = AppConfig.buyerBaseUrl;
   final AuthService _authService = getIt<AuthService>();
 
   /// Lấy danh sách danh mục nguyên liệu

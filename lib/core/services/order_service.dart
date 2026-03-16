@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import '../config/app_config.dart';
 import 'auth/simple_auth_helper.dart';
 import '../utils/status_formatter.dart';
 
 /// Service để fetch danh sách đơn hàng từ API
 class OrderService {
-  static const String _baseUrl =
-      'https://subtle-seat-475108-v5.et.r.appspot.com/api/buyer';
+  static const String _baseUrl = AppConfig.buyerBaseUrl;
 
   /// Huỷ đơn hàng
   Future<CancelOrderResponse> cancelOrder(String maDonHang) async {

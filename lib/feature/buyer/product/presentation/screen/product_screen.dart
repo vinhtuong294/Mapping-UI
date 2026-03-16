@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../../core/config/app_config.dart';
 import '../../../../../core/widgets/product_list_item.dart';
 import '../../../../../core/widgets/cart_badge_icon.dart';
 import '../../../../../core/widgets/buyer_loading.dart';
@@ -387,7 +388,7 @@ class _ProductViewState extends State<ProductView> {
                   return ProductListItem(
                     productName: monAn.tenMonAn,
                     imagePath: imageUrl.isNotEmpty
-                        ? imageUrl
+                        ? (imageUrl.startsWith('http') ? imageUrl : '${AppConfig.imageBaseUrl}${imageUrl.startsWith('/') ? '' : '/'}$imageUrl')
                         : 'assets/img/product_default.png',
                     servings: monAnWithImage.servings,
                     difficulty: monAnWithImage.difficulty,

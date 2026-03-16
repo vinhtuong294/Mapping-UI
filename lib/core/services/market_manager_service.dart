@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import '../config/app_config.dart';
 import '../models/market_info_model.dart';
 import '../models/market_map_model.dart';
 import '../models/seller_list_model.dart';
@@ -8,8 +9,7 @@ import 'auth/simple_auth_helper.dart';
 
 /// Service để quản lý thông tin chợ cho market manager
 class MarketManagerService {
-  static const String _baseUrl =
-      'https://subtle-seat-475108-v5.et.r.appspot.com/api/market-manager';
+  static const String _baseUrl = AppConfig.adminBaseUrl;
 
   /// Lấy thông tin chợ của market manager
   Future<MarketInfoResponse> getMarketInfo() async {

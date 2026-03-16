@@ -29,20 +29,23 @@ class UserData {
   final String maNguoiDung;
   final String vaiTro;
   final String tenDangNhap;
+  final String? tenNguoiDung;
 
   UserData({
     required this.sub,
     required this.maNguoiDung,
     required this.vaiTro,
     required this.tenDangNhap,
+    this.tenNguoiDung,
   });
 
   factory UserData.fromJson(Map<String, dynamic> json) {
     return UserData(
-      sub: json['sub'],
-      maNguoiDung: json['ma_nguoi_dung'],
-      vaiTro: json['vai_tro'],
-      tenDangNhap: json['ten_dang_nhap'],
+      sub: json['sub'] ?? '',
+      maNguoiDung: json['user_id'] ?? json['ma_nguoi_dung'] ?? json['sub'] ?? '',
+      vaiTro: json['role'] ?? json['vai_tro'] ?? 'nguoi_mua',
+      tenDangNhap: json['login_name'] ?? json['ten_dang_nhap'] ?? '',
+      tenNguoiDung: json['user_name'] ?? json['ten_nguoi_dung'],
     );
   }
 
@@ -52,6 +55,7 @@ class UserData {
       'ma_nguoi_dung': maNguoiDung,
       'vai_tro': vaiTro,
       'ten_dang_nhap': tenDangNhap,
+      'ten_nguoi_dung': tenNguoiDung,
     };
   }
 

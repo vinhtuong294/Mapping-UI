@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import '../config/app_config.dart';
 import '../models/khu_vuc_model.dart';
 import 'auth/auth_service.dart';
 
@@ -6,7 +7,7 @@ class KhuVucService {
   final AuthService _authService;
   late final Dio _dio;
   
-  static const String baseUrl = 'https://subtle-seat-475108-v5.et.r.appspot.com';
+  static const String baseUrl = AppConfig.baseUrl;
 
   KhuVucService(this._authService) {
     _dio = Dio(
@@ -28,7 +29,7 @@ class KhuVucService {
     try {
       final token = await _authService.getToken();
       
-      final url = '/api/buyer/khu-vuc';
+      final url = '/buyer/khu-vuc';
       print('🔍 [KhuVucService] Fetching khu vuc list...');
       print('   Full URL: $baseUrl$url');
       print('   Token: ${token?.substring(0, 20)}...');

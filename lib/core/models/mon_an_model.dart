@@ -14,12 +14,11 @@ class MonAnModel {
   /// Parse từ JSON response
   factory MonAnModel.fromJson(Map<String, dynamic> json) {
     return MonAnModel(
-      maMonAn: json['ma_mon_an'] as String? ?? '',
-      tenMonAn: json['ten_mon_an'] as String? ?? '',
+      maMonAn: (json['ma_mon_an'] ?? json['id'] ?? '').toString(),
+      tenMonAn: (json['ten_mon_an'] ?? json['market_name'] ?? json['name'] ?? '').toString(),
       danhMuc: (json['danh_muc'] as List<dynamic>?)
               ?.map((item) => DanhMucMonAn.fromJson(item as Map<String, dynamic>))
-              .toList() ??
-          [],
+              .toList() ?? [],
     );
   }
 
@@ -74,9 +73,9 @@ class MonAnMeta {
 
   factory MonAnMeta.fromJson(Map<String, dynamic> json) {
     return MonAnMeta(
-      page: json['page'] as int? ?? 1,
-      limit: json['limit'] as int? ?? 12,
-      total: json['total'] as int? ?? 0,
+      page: (json['page'] as num?)?.toInt() ?? 1,
+      limit: (json['limit'] as num?)?.toInt() ?? 12,
+      total: (json['total'] as num?)?.toInt() ?? 0,
       hasNext: json['hasNext'] as bool? ?? false,
     );
   }

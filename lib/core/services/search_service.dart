@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../config/app_config.dart';
 import '../models/search_response.dart';
 import '../error/exceptions.dart';
 import 'auth/auth_service.dart';
@@ -7,7 +8,7 @@ import '../dependency/injection.dart';
 
 /// Service để tìm kiếm gian hàng, món ăn, nguyên liệu
 class SearchService {
-  static const String baseUrl = 'https://subtle-seat-475108-v5.et.r.appspot.com/api';
+  static const String baseUrl = AppConfig.baseUrl;
   final AuthService _authService = getIt<AuthService>();
 
   /// Tìm kiếm với query

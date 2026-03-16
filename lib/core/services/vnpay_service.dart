@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../config/app_config.dart';
 import 'auth/simple_auth_helper.dart';
 
 /// Service để xử lý thanh toán VNPay
 class VNPayService {
-  static const String _baseUrl =
-      'https://subtle-seat-475108-v5.et.r.appspot.com/api/payment';
+  static const String _baseUrl = '${AppConfig.baseUrl}/payment';
 
   /// Get order status để check kết quả thanh toán
   Future<OrderStatusResponse> getOrderStatus(String maDonHang) async {
@@ -19,7 +19,7 @@ class VNPayService {
       }
 
       final url = Uri.parse(
-        'https://subtle-seat-475108-v5.et.r.appspot.com/api/buyer/orders/$maDonHang',
+        '${AppConfig.buyerBaseUrl}/orders/$maDonHang',
       );
 
       print('💳 [VNPAY] Request URL: $url');

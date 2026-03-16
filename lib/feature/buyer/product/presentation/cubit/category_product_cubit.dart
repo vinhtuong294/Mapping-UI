@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:dngo/core/config/app_config.dart';
 import 'package:dngo/core/dependency/injection.dart';
 import 'package:dngo/core/services/mon_an_service.dart';
 import 'package:dngo/core/services/auth/auth_service.dart';
@@ -19,12 +20,13 @@ class CategoryProductCubit extends Cubit<CategoryProductState> {
     emit(CategoryProductLoading());
 
     try {
-      // Debug: Print API call info
-      print('═' * 80);
-      print('📡 [API] Gọi API lấy danh sách món ăn theo danh mục');
-      print('   Mã danh mục: $categoryId');
-      print('   URL đầy đủ: https://subtle-seat-475108-v5.et.r.appspot.com/api/buyer/mon-an?ma_danh_muc_mon_an=$categoryId&page=1&limit=12&sort=ten_mon_an&order=asc');
-      print('═' * 80);
+      if (AppConfig.enableApiLogging) {
+        print('═' * 80);
+        print('📡 [API] Gọi API lấy danh sách món ăn theo danh mục');
+        print('   Mã danh mục: $categoryId');
+        print('   URL đầy đủ: ${AppConfig.buyerBaseUrl}/mon-an?ma_danh_muc_mon_an=$categoryId&page=1&limit=12&sort=ten_mon_an&order=asc');
+        print('═' * 80);
+      }
       
       // Fetch danh sách món ăn theo danh mục từ API (với metadata)
       final response = await _monAnService.getMonAnListWithMeta(
@@ -87,11 +89,13 @@ class CategoryProductCubit extends Cubit<CategoryProductState> {
 
     try {
       final nextPage = currentState.currentPage + 1;
-      print('═' * 80);
-      print('📡 [API] Load thêm trang $nextPage');
-      print('   Mã danh mục: $_currentCategoryId');
-      print('   URL đầy đủ: https://subtle-seat-475108-v5.et.r.appspot.com/api/buyer/mon-an?ma_danh_muc_mon_an=$_currentCategoryId&page=$nextPage&limit=12&sort=ten_mon_an&order=asc');
-      print('═' * 80);
+      if (AppConfig.enableApiLogging) {
+        print('═' * 80);
+        print('📡 [API] Load thêm trang $nextPage');
+        print('   Mã danh mục: $_currentCategoryId');
+        print('   URL đầy đủ: ${AppConfig.buyerBaseUrl}/mon-an?ma_danh_muc_mon_an=$_currentCategoryId&page=$nextPage&limit=12&sort=ten_mon_an&order=asc');
+        print('═' * 80);
+      }
       
       final response = await _monAnService.getMonAnListWithMeta(
         page: nextPage,

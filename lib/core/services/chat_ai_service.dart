@@ -1,11 +1,12 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../config/app_config.dart';
 import '../models/chat_ai_model.dart';
 import 'auth/auth_service.dart';
 import '../dependency/injection.dart';
 
 class ChatAIService {
-  static const String baseUrl = 'https://subtle-seat-475108-v5.et.r.appspot.com';
+  static const String baseUrl = AppConfig.baseUrl;
   final AuthService _authService = getIt<AuthService>();
 
   /// Gửi tin nhắn chat đến AI
@@ -26,7 +27,7 @@ class ChatAIService {
       print('   Conversation ID: $conversationId');
 
       final response = await http.post(
-        Uri.parse('$baseUrl/api/chat/chat'),
+        Uri.parse('$baseUrl/chat/chat'),
         headers: {
           'Content-Type': 'application/json',
           if (token != null) 'Authorization': 'Bearer $token',

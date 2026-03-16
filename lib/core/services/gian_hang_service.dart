@@ -10,8 +10,7 @@ import '../dependency/injection.dart';
 
 /// Service để fetch danh sách gian hàng
 class GianHangService {
-  static const String baseUrl =
-      'https://subtle-seat-475108-v5.et.r.appspot.com/api/buyer';
+  static const String baseUrl = AppConfig.buyerBaseUrl;
   final AuthService _authService = getIt<AuthService>();
 
   /// Lấy danh sách gian hàng

@@ -6,8 +6,7 @@ import 'auth/simple_auth_helper.dart';
 
 /// Service để fetch thông tin gian hàng từ API
 class ShopApiService {
-  static const String _baseUrl =
-      'https://subtle-seat-475108-v5.et.r.appspot.com/api/buyer';
+  static const String _baseUrl = AppConfig.buyerBaseUrl;
 
   /// Fetch thông tin chi tiết của một gian hàng
   /// API: GET /api/buyer/shops/{ma_gian_hang}

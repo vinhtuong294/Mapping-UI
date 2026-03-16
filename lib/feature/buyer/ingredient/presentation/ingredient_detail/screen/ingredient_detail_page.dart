@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/ingredient_detail_cubit.dart';
 import '../cubit/ingredient_detail_state.dart';
+import '../../../../../../core/config/app_config.dart';
 import '../../../../../../core/widgets/ingredient_grid_card.dart';
 import '../../../../../../core/widgets/cart_badge_icon.dart';
 import '../../../../../../core/widgets/buyer_loading.dart';
@@ -156,7 +157,13 @@ class _IngredientDetailView extends StatelessWidget {
 
   Widget _buildProductImage(IngredientDetailState state) {
     final imagePath = state.ingredientImage;
-    final isNetworkImage = imagePath.startsWith('http://') || imagePath.startsWith('https://');
+    // Đảm bảo imagePath là URL tuyệt đối nếu không bắt đầu bằng assets
+    String finalPath = imagePath;
+    if (imagePath.isNotEmpty && !imagePath.startsWith('http') && !imagePath.startsWith('assets')) {
+      finalPath = '${AppConfig.imageBaseUrl}${imagePath.startsWith('/') ? '' : '/'}$imagePath';
+    }
+
+    final isNetworkImage = finalPath.startsWith('http://') || finalPath.startsWith('https://');
     
     final placeholderWidget = Container(
       color: Colors.grey[200],
@@ -166,11 +173,11 @@ class _IngredientDetailView extends StatelessWidget {
     return SizedBox(
       height: 308,
       width: double.infinity,
-      child: imagePath.isEmpty
+      child: finalPath.isEmpty
           ? placeholderWidget
           : isNetworkImage
               ? Image.network(
-                  imagePath,
+                  finalPath,
                   fit: BoxFit.cover,
                   loadingBuilder: (context, child, loadingProgress) {
                     if (loadingProgress == null) return child;
@@ -190,7 +197,7 @@ class _IngredientDetailView extends StatelessWidget {
                   errorBuilder: (_, __, ___) => placeholderWidget,
                 )
               : Image.asset(
-                  imagePath,
+                  finalPath,
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) => placeholderWidget,
                 ),

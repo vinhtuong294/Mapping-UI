@@ -1,3 +1,5 @@
+import '../config/app_config.dart';
+
 /// Model chi tiết món ăn từ API
 /// API: GET /api/buyer/mon-an/{ma_mon_an}
 /// Response JSON: { "success": true, "detail": {...} }
@@ -46,19 +48,19 @@ class MonAnDetailModel {
   /// Cấu trúc: { "success": true, "detail": {...} }
   factory MonAnDetailModel.fromJson(Map<String, dynamic> json) {
     // Lấy object detail từ response
-    final detail = json['detail'] as Map<String, dynamic>? ?? json;
+    final detail = json['detail'] as Map<String, dynamic>? ?? json['data'] as Map<String, dynamic>? ?? json;
     
     return MonAnDetailModel(
-      maMonAn: detail['ma_mon_an'] as String? ?? '',
-      tenMonAn: detail['ten_mon_an'] as String? ?? '',
-      hinhAnh: detail['hinh_anh'] as String? ?? '',
+      maMonAn: (detail['ma_mon_an'] ?? detail['id'] ?? '').toString(),
+      tenMonAn: (detail['ten_mon_an'] ?? detail['market_name'] ?? '').toString(),
+      hinhAnh: _parseImageUrl(detail['hinh_anh']),
       khoangThoiGian: (detail['khoang_thoi_gian'] as num?)?.toInt(),
-      doKho: detail['do_kho'] as String?,
+      doKho: detail['do_kho']?.toString(),
       khauPhanTieuChuan: (detail['khau_phan_tieu_chuan'] as num?)?.toInt(),
       khauPhanHienTai: (detail['khau_phan_hien_tai'] as num?)?.toInt(),
-      cachThucHien: detail['cach_thuc_hien'] as String?,
-      soChe: detail['so_che'] as String?,
-      cachDung: detail['cach_dung'] as String?,
+      cachThucHien: detail['cach_thuc_hien']?.toString(),
+      soChe: detail['so_che']?.toString(),
+      cachDung: detail['cach_dung']?.toString(),
       calories: (detail['calories'] as num?)?.toInt(),
       caloriesGoc: (detail['calories_goc'] as num?)?.toInt(),
       caloriesMoiKhauPhan: (detail['calories_moi_khau_phan'] as num?)?.toInt(),
@@ -111,9 +113,7 @@ class DanhMucDetail {
 
   factory DanhMucDetail.fromJson(Map<String, dynamic> json) {
     return DanhMucDetail(
-      // Hỗ trợ cả 2 format: ma_danh_muc và ma_danh_muc_mon_an
       maDanhMuc: json['ma_danh_muc_mon_an'] as String? ?? json['ma_danh_muc'] as String?,
-      // Hỗ trợ cả 2 format: ten_danh_muc và ten_danh_muc_mon_an
       tenDanhMuc: json['ten_danh_muc_mon_an'] as String? ?? json['ten_danh_muc'] as String?,
     );
   }
@@ -158,7 +158,7 @@ class NguyenLieuDetail {
       tenNguyenLieu: json['ten_nguyen_lieu'] as String?,
       donViGoc: json['don_vi_goc'] as String?,
       dinhLuong: json['dinh_luong'] as String?,
-      hinhAnh: json['hinh_anh'] as String?,
+      hinhAnh: _parseImageUrl(json['hinh_anh']),
       gia: _parseDouble(json['gia_cuoi']) ?? _parseDouble(json['gia_goc']) ?? _parseDouble(json['gia']),
       donViBan: json['don_vi_ban'] as String?,
       soLuongBan: _parseDouble(json['so_luong_ban']),
@@ -220,4 +220,11 @@ class GianHangInfo {
       'ma_cho': maCho,
     };
   }
+}
+
+String _parseImageUrl(dynamic value) {
+  if (value == null || value.toString().isEmpty) return '';
+  final path = value.toString();
+  if (path.startsWith('http')) return path;
+  return '${AppConfig.imageBaseUrl}${path.startsWith('/') ? '' : '/'}$path';
 }

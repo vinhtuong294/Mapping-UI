@@ -7,8 +7,7 @@ import 'auth/simple_auth_helper.dart';
 
 /// Service để fetch thông tin giỏ hàng từ API
 class CartApiService {
-  static const String _baseUrl =
-      'https://subtle-seat-475108-v5.et.r.appspot.com/api/buyer';
+  static const String _baseUrl = AppConfig.buyerBaseUrl;
 
   /// Thêm sản phẩm vào giỏ hàng
   Future<AddToCartResponse> addToCart({

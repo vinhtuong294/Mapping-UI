@@ -26,16 +26,16 @@ class NguyenLieuModel {
 
   factory NguyenLieuModel.fromJson(Map<String, dynamic> json) {
     return NguyenLieuModel(
-      maNguyenLieu: json['ma_nguyen_lieu'] as String,
-      tenNguyenLieu: json['ten_nguyen_lieu'] as String,
-      donVi: json['don_vi'] as String?,
-      maNhomNguyenLieu: json['ma_nhom_nguyen_lieu'] as String,
-      tenNhomNguyenLieu: json['ten_nhom_nguyen_lieu'] as String,
-      soGianHang: (json['so_gian_hang'] as num).toInt(),
+      maNguyenLieu: (json['ma_nguyen_lieu'] ?? json['id'] ?? '').toString(),
+      tenNguyenLieu: (json['ten_nguyen_lieu'] ?? json['market_name'] ?? json['name'] ?? '').toString(),
+      donVi: json['don_vi']?.toString(),
+      maNhomNguyenLieu: (json['ma_nhom_nguyen_lieu'] ?? json['category_id'] ?? '').toString(),
+      tenNhomNguyenLieu: (json['ten_nhom_nguyen_lieu'] ?? json['category_name'] ?? '').toString(),
+      soGianHang: (json['so_gian_hang'] as num?)?.toInt() ?? 0,
       giaGoc: json['gia_goc'] != null ? (json['gia_goc'] as num).toDouble() : null,
       giaCuoi: json['gia_cuoi']?.toString(),
-      ngayCapNhat: json['ngay_cap_nhat'] as String?,
-      hinhAnh: json['hinh_anh'] as String?,
+      ngayCapNhat: json['ngay_cap_nhat']?.toString(),
+      hinhAnh: json['hinh_anh']?.toString(),
     );
   }
 
@@ -91,10 +91,10 @@ class NguyenLieuMeta {
 
   factory NguyenLieuMeta.fromJson(Map<String, dynamic> json) {
     return NguyenLieuMeta(
-      page: (json['page'] as num).toInt(),
-      limit: (json['limit'] as num).toInt(),
-      total: (json['total'] as num).toInt(),
-      hasNext: json['hasNext'] as bool,
+      page: (json['page'] as num?)?.toInt() ?? 1,
+      limit: (json['limit'] as num?)?.toInt() ?? 12,
+      total: (json['total'] as num?)?.toInt() ?? 0,
+      hasNext: json['hasNext'] as bool? ?? false,
     );
   }
 }

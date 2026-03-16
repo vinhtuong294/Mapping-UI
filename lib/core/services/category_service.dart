@@ -1,12 +1,13 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../config/app_config.dart';
 import '../models/category_model.dart';
 import '../error/exceptions.dart';
 import 'package:logger/logger.dart';
 
 /// Service để gọi API lấy danh mục món ăn
 class CategoryService {
-  static const String _baseUrl = 'https://subtle-seat-475108-v5.et.r.appspot.com/api/buyer';
+  static const String _baseUrl = AppConfig.buyerBaseUrl;
   static const String _endpoint = '/danh-muc-mon-an';
   static const String _tokenKey = 'auth_token';
 

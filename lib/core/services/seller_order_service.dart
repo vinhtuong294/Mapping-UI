@@ -2,11 +2,12 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/seller_order_model.dart';
+import '../config/app_config.dart';
 import 'auth/simple_auth_helper.dart';
 
 /// Service để quản lý đơn hàng của seller
 class SellerOrderService {
-  static const String _baseUrl = 'https://subtle-seat-475108-v5.et.r.appspot.com/api/seller';
+  static const String _baseUrl = AppConfig.sellerBaseUrl;
 
   /// Lấy danh sách đơn hàng của seller
   Future<SellerOrdersResponse> getOrders({

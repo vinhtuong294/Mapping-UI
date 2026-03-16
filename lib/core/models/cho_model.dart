@@ -19,13 +19,13 @@ class ChoModel {
 
   factory ChoModel.fromJson(Map<String, dynamic> json) {
     return ChoModel(
-      maCho: json['ma_cho'] as String,
-      tenCho: json['ten_cho'] as String,
-      maKhuVuc: json['ma_khu_vuc'] as String,
-      tenKhuVuc: json['ten_khu_vuc'] as String,
-      diaChi: json['dia_chi'] as String,
-      hinhAnh: json['hinh_anh'] as String,
-      soGianHang: json['so_gian_hang'] as int,
+      maCho: (json['ma_cho'] ?? json['id'] ?? '').toString(),
+      tenCho: (json['ten_cho'] ?? json['market_name'] ?? '').toString(),
+      maKhuVuc: (json['ma_khu_vuc'] ?? json['district_id'] ?? '').toString(),
+      tenKhuVuc: (json['ten_khu_vuc'] ?? json['district_name'] ?? '').toString(),
+      diaChi: (json['dia_chi'] ?? json['address'] ?? '').toString(),
+      hinhAnh: (json['hinh_anh'] ?? json['image_url'] ?? '').toString(),
+      soGianHang: json['so_gian_hang'] ?? json['stall_count'] ?? 0,
     );
   }
 
@@ -76,10 +76,10 @@ class ChoMetaData {
 
   factory ChoMetaData.fromJson(Map<String, dynamic> json) {
     return ChoMetaData(
-      page: json['page'] as int,
-      limit: json['limit'] as int,
-      total: json['total'] as int,
-      hasNext: json['hasNext'] as bool,
+      page: json['page'] ?? 1,
+      limit: json['limit'] ?? 10,
+      total: json['total'] ?? 0,
+      hasNext: json['hasNext'] ?? false,
     );
   }
 }

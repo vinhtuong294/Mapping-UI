@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../config/app_config.dart';
 import 'auth/simple_auth_helper.dart';
 
 /// Service để quản lý thông tin user profile
 class UserProfileService {
-  static const String _baseUrl =
-      'https://subtle-seat-475108-v5.et.r.appspot.com/api/auth';
+  static const String _baseUrl = AppConfig.authBaseUrl;
 
   /// Lấy thông tin user hiện tại
   Future<UserProfileResponse> getProfile() async {

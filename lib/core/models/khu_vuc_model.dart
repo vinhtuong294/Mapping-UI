@@ -15,11 +15,11 @@ class KhuVucModel {
 
   factory KhuVucModel.fromJson(Map<String, dynamic> json) {
     return KhuVucModel(
-      maKhuVuc: json['ma_khu_vuc'] as String,
-      phuong: json['phuong'] as String,
-      longitude: (json['longitude'] as num).toDouble(),
-      latitude: (json['latitude'] as num).toDouble(),
-      soCho: json['so_cho'] as int,
+      maKhuVuc: (json['ma_khu_vuc'] ?? json['id'] ?? '').toString(),
+      phuong: (json['phuong'] ?? json['district_name'] ?? '').toString(),
+      longitude: (json['longitude'] as num?)?.toDouble() ?? 0.0,
+      latitude: (json['latitude'] as num?)?.toDouble() ?? 0.0,
+      soCho: json['so_cho'] ?? json['market_count'] ?? 0,
     );
   }
 
@@ -68,10 +68,10 @@ class MetaData {
 
   factory MetaData.fromJson(Map<String, dynamic> json) {
     return MetaData(
-      page: json['page'] as int,
-      limit: json['limit'] as int,
-      total: json['total'] as int,
-      hasNext: json['hasNext'] as bool,
+      page: json['page'] ?? 1,
+      limit: json['limit'] ?? 10,
+      total: json['total'] ?? 0,
+      hasNext: json['hasNext'] ?? false,
     );
   }
 }

@@ -3,11 +3,12 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
+import '../config/app_config.dart';
 import '../models/nhom_nguyen_lieu_model.dart';
 import 'auth/simple_auth_helper.dart';
 
 class NhomNguyenLieuService {
-  static const String _baseUrl = 'https://subtle-seat-475108-v5.et.r.appspot.com/api';
+  static const String _baseUrl = AppConfig.baseUrl;
 
   /// Lấy headers với token authentication
   static Future<Map<String, String>> _getHeaders() async {

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import '../config/app_config.dart';
 import '../models/cho_model.dart';
 import 'auth/auth_service.dart';
 
@@ -6,7 +7,7 @@ class ChoService {
   final AuthService _authService;
   late final Dio _dio;
   
-  static const String baseUrl = 'https://subtle-seat-475108-v5.et.r.appspot.com';
+  static const String baseUrl = AppConfig.baseUrl;
 
   ChoService(this._authService) {
     _dio = Dio(
@@ -29,7 +30,7 @@ class ChoService {
     try {
       final token = await _authService.getToken();
       
-      final url = '/api/buyer/cho';
+      final url = '/buyer/cho';
       print('🔍 [ChoService] Fetching cho list...');
       print('   Full URL: $baseUrl$url');
       print('   Ma khu vuc: $maKhuVuc');

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../../core/widgets/buyer_loading.dart';
 import '../../../../../core/widgets/shared_bottom_navigation.dart';
+import '../../../../../core/config/app_config.dart';
 import '../../../../../core/widgets/product_list_item.dart';
 import '../../../../../core/config/route_name.dart';
 import '../../../../../core/router/app_router.dart';
@@ -190,7 +191,7 @@ class _CategoryProductViewState extends State<CategoryProductView> {
                 return ProductListItem(
                   productName: monAn.tenMonAn,
                   imagePath: imageUrl.isNotEmpty
-                      ? imageUrl
+                      ? (imageUrl.startsWith('http') ? imageUrl : '${AppConfig.imageBaseUrl}${imageUrl.startsWith('/') ? '' : '/'}$imageUrl')
                       : 'assets/img/product_default.png',
                   servings: monAnWithImage.servings,
                   difficulty: monAnWithImage.difficulty,

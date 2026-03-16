@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'productdetail_state.dart';
+import '../../../../../core/config/app_config.dart';
 import '../../../../../core/services/mon_an_service.dart';
 import '../../../../../core/services/nguyen_lieu_service.dart';
 import '../../../../../core/services/cart_api_service.dart';
@@ -63,8 +64,8 @@ class ProductDetailCubit extends Cubit<ProductDetailState> {
         maMonAn: maMonAn, // Lưu mã món ăn để reload sau
         productName: detail.tenMonAn,
         productImage: detail.hinhAnh.isNotEmpty 
-            ? detail.hinhAnh 
-            : 'assets/img/productdetail_main_image.png',
+            ? (detail.hinhAnh.startsWith('http') ? detail.hinhAnh : '${AppConfig.imageBaseUrl}${detail.hinhAnh.startsWith('/') ? '' : '/'}${detail.hinhAnh}')
+            : 'assets/img/product_default.png',
         doKho: detail.doKho,
         khoangThoiGian: detail.khoangThoiGian,
         khauPhanTieuChuan: detail.khauPhanTieuChuan,
@@ -304,7 +305,9 @@ class ProductDetailCubit extends Cubit<ProductDetailState> {
             ten: nl.ten,
             dinhLuong: nl.dinhLuong,
             donVi: nl.donVi,
-            hinhAnh: nl.hinhAnh,
+            hinhAnh: nl.hinhAnh != null && nl.hinhAnh!.isNotEmpty
+                ? (nl.hinhAnh!.startsWith('http') ? nl.hinhAnh : '${AppConfig.imageBaseUrl}${nl.hinhAnh!.startsWith('/') ? '' : '/'}${nl.hinhAnh}')
+                : nl.hinhAnh,
             gia: priceMap[nl.maNguyenLieu],
             donViBan: donViBanMap[nl.maNguyenLieu] ?? nl.donViBan,
             gianHang: nl.gianHang, // Giữ lại gianHang

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../config/app_config.dart';
 import '../models/mon_an_model.dart';
 import '../models/mon_an_detail_model.dart';
 import '../models/mon_an_response.dart';
@@ -8,7 +9,7 @@ import 'package:logger/logger.dart';
 
 /// Service để gọi API món ăn
 class MonAnService {
-  static const String _baseUrl = 'https://subtle-seat-475108-v5.et.r.appspot.com/api/buyer';
+  static const String _baseUrl = AppConfig.buyerBaseUrl;
   static const String _endpointList = '/mon-an';
   static const String _tokenKey = 'auth_token';
 
