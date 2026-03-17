@@ -1,3 +1,5 @@
+import 'package:dngo/core/config/app_config.dart';
+
 /// Model cho Nguyên Liệu
 class NguyenLieuModel {
   final String maNguyenLieu;
@@ -35,8 +37,16 @@ class NguyenLieuModel {
       giaGoc: json['gia_goc'] != null ? (json['gia_goc'] as num).toDouble() : null,
       giaCuoi: json['gia_cuoi']?.toString(),
       ngayCapNhat: json['ngay_cap_nhat']?.toString(),
-      hinhAnh: json['hinh_anh']?.toString(),
+      hinhAnh: _parseImageUrl(json['hinh_anh'] ?? json['image'] ?? json['img']),
     );
+  }
+
+  static String _parseImageUrl(dynamic value) {
+    if (value == null || value.toString().isEmpty) return '';
+    final path = value.toString();
+    if (path.startsWith('http')) return path;
+    final imageBaseUrl = AppConfig.imageBaseUrl;
+    return '$imageBaseUrl${path.startsWith('/') ? '' : '/'}$path';
   }
 
   Map<String, dynamic> toJson() {

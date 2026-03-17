@@ -1,14 +1,18 @@
+import 'package:dngo/core/config/app_config.dart';
+
 /// Model cho món ăn từ API danh sách món ăn
 /// API: GET /api/buyer/mon-an
 class MonAnModel {
   final String maMonAn;
   final String tenMonAn;
   final List<DanhMucMonAn> danhMuc;
+  final String? hinhAnh;
 
   MonAnModel({
     required this.maMonAn,
     required this.tenMonAn,
     required this.danhMuc,
+    this.hinhAnh,
   });
 
   /// Parse từ JSON response
@@ -19,7 +23,17 @@ class MonAnModel {
       danhMuc: (json['danh_muc'] as List<dynamic>?)
               ?.map((item) => DanhMucMonAn.fromJson(item as Map<String, dynamic>))
               .toList() ?? [],
+      hinhAnh: _parseImageUrl(json['hinh_anh'] ?? json['image'] ?? json['img']),
     );
+  }
+
+  static String _parseImageUrl(dynamic value) {
+    if (value == null || value.toString().isEmpty) return '';
+    final path = value.toString();
+    if (path.startsWith('http')) return path;
+    
+    final baseUrl = AppConfig.imageBaseUrl;
+    return '$baseUrl${path.startsWith('/') ? '' : '/'}$path';
   }
 
   /// Convert sang JSON
@@ -28,6 +42,7 @@ class MonAnModel {
       'ma_mon_an': maMonAn,
       'ten_mon_an': tenMonAn,
       'danh_muc': danhMuc.map((item) => item.toJson()).toList(),
+      'hinh_anh': hinhAnh,
     };
   }
 }

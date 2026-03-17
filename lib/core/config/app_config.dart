@@ -20,7 +20,7 @@ class AppConfig {
   );
 
   // Base URL cho hình ảnh (Domain chính)
-  static const String imageBaseUrl = 'http://207.180.233.84:8000';
+  static const String imageBaseUrl = 'http://207.180.233.84';
 
   // Định nghĩa các Base URL theo Role (Dựa trên tài liệu hướng dẫn cập nhật)
   static const String authBaseUrl = '$baseUrl/auth';

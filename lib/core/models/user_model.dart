@@ -21,13 +21,13 @@ class UserModel {
   /// Tạo UserModel từ JSON
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      maNguoiDung: json['ma_nguoi_dung'] as String? ?? '',
-      tenDangNhap: json['ten_dang_nhap'] as String? ?? '',
-      tenNguoiDung: json['ten_nguoi_dung'] as String? ?? '',
-      vaiTro: json['vai_tro'] as String? ?? 'nguoi_mua',
-      gioiTinh: json['gioi_tinh'] as String?,
-      sdt: json['sdt'] as String?,
-      diaChi: json['dia_chi'] as String?,
+      maNguoiDung: (json['ma_nguoi_dung'] ?? json['user_id']) as String? ?? '',
+      tenDangNhap: (json['ten_dang_nhap'] ?? json['login_name']) as String? ?? '',
+      tenNguoiDung: (json['ten_nguoi_dung'] ?? json['user_name']) as String? ?? '',
+      vaiTro: (json['vai_tro'] ?? json['role']) as String? ?? 'nguoi_mua',
+      gioiTinh: (json['gioi_tinh'] ?? json['gender']) as String?,
+      sdt: (json['sdt'] ?? json['phone']) as String?,
+      diaChi: (json['dia_chi'] ?? json['address']) as String?,
     );
   }
 

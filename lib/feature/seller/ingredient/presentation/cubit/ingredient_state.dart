@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:dngo/core/config/app_config.dart';
 
 /// Model đại diện cho một nguyên liệu/sản phẩm của người bán
 class SellerIngredient extends Equatable {
@@ -33,12 +34,21 @@ class SellerIngredient extends Equatable {
       finalPrice: double.tryParse(json['gia_cuoi']?.toString() ?? '0') ?? 0,
       unit: json['don_vi_ban'] ?? '',
       availableQuantity: json['so_luong_ban'] ?? 0,
-      imageUrl: json['hinh_anh'] ?? '',
+      imageUrl: _parseImageUrl(json['hinh_anh'] ?? json['image'] ?? json['img']),
       discountPercent: json['phan_tram_giam_gia'] ?? 0,
       updatedAt: json['ngay_cap_nhat'] != null 
           ? DateTime.tryParse(json['ngay_cap_nhat']) 
           : null,
     );
+  }
+
+  static String _parseImageUrl(dynamic value) {
+    if (value == null || value.toString().isEmpty) return '';
+    final path = value.toString();
+    if (path.startsWith('http')) return path;
+    
+    final baseUrl = AppConfig.imageBaseUrl;
+    return '$baseUrl${path.startsWith('/') ? '' : '/'}$path';
   }
 
   /// Format giá tiền
