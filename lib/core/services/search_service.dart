@@ -16,7 +16,7 @@ class SearchService {
     try {
       final token = await _authService.getToken();
       
-      final uri = Uri.parse('$baseUrl/search').replace(
+      final uri = Uri.parse('$baseUrl/search/').replace(
         queryParameters: {'q': query},
       );
 

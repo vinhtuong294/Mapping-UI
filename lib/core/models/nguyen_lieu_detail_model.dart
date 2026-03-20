@@ -11,7 +11,7 @@ class NguyenLieuDetailModel {
   final double? giaGoc;
   final String? giaCuoi;
   final String? ngayCapNhatMoiNhat;
-  final String? hinhAnhMoiNhat;
+  final String? hinhAnh;
 
   NguyenLieuDetailModel({
     required this.maNguyenLieu,
@@ -23,7 +23,7 @@ class NguyenLieuDetailModel {
     this.giaGoc,
     this.giaCuoi,
     this.ngayCapNhatMoiNhat,
-    this.hinhAnhMoiNhat,
+    this.hinhAnh,
   });
 
   factory NguyenLieuDetailModel.fromJson(Map<String, dynamic> json) {
@@ -37,7 +37,7 @@ class NguyenLieuDetailModel {
       giaGoc: json['gia_goc'] != null ? (json['gia_goc'] as num).toDouble() : null,
       giaCuoi: json['gia_cuoi']?.toString(),
       ngayCapNhatMoiNhat: json['ngay_cap_nhat_moi_nhat']?.toString() ?? json['ngay_cap_nhat']?.toString(),
-      hinhAnhMoiNhat: _parseImageUrl(json['hinh_anh_moi_nhat'] ?? json['hinh_anh']),
+      hinhAnh: _parseImageUrl(json['hinh_anh_moi_nhat'] ?? json['hinh_anh'] ?? json['image']),
     );
   }
 }
@@ -90,19 +90,19 @@ class SellerModel {
 /// Response model cho chi tiết nguyên liệu
 class NguyenLieuDetailResponse {
   final bool success;
-  final NguyenLieuDetailModel detail;
+  final NguyenLieuDetailModel data;
   final SellersData sellers;
 
   NguyenLieuDetailResponse({
     required this.success,
-    required this.detail,
+    required this.data,
     required this.sellers,
   });
 
   factory NguyenLieuDetailResponse.fromJson(Map<String, dynamic> json) {
     return NguyenLieuDetailResponse(
       success: json['success'] as bool? ?? true,
-      detail: NguyenLieuDetailModel.fromJson(json['detail'] as Map<String, dynamic>? ?? json['data'] as Map<String, dynamic>? ?? {}),
+      data: NguyenLieuDetailModel.fromJson(json['detail'] as Map<String, dynamic>? ?? json['data'] as Map<String, dynamic>? ?? {}),
       sellers: SellersData.fromJson(json['sellers'] as Map<String, dynamic>? ?? json['data'] as Map<String, dynamic>? ?? {}),
     );
   }

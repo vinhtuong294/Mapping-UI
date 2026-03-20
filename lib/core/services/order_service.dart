@@ -7,7 +7,7 @@ import '../utils/status_formatter.dart';
 
 /// Service để fetch danh sách đơn hàng từ API
 class OrderService {
-  static const String _baseUrl = AppConfig.buyerBaseUrl;
+  static const String _baseUrl = AppConfig.baseUrl;
 
   /// Huỷ đơn hàng
   Future<CancelOrderResponse> cancelOrder(String maDonHang) async {
@@ -91,7 +91,7 @@ class OrderService {
     int page = 1,
     int limit = 12,
   }) async {
-    debugPrint('📦 [ORDER SERVICE] Fetching orders...');
+    debugPrint('📦 [ORDER SERVICE] Fetching orders (page $page, limit $limit)');
 
     try {
       final token = await getToken();
@@ -100,8 +100,15 @@ class OrderService {
         throw Exception('User not logged in');
       }
 
-      final url = Uri.parse('$_baseUrl/orders').replace(
+      final buyerId = await getUserId();
+      if (buyerId == null) {
+        throw Exception('Buyer ID not found');
+      }
+
+      // API yêu cầu buyer_id và trailing slash giống cart API
+      final url = Uri.parse('$_baseUrl/orders/').replace(
         queryParameters: {
+          'buyer_id': buyerId,
           'page': page.toString(),
           'limit': limit.toString(),
         },
@@ -192,8 +199,12 @@ class OrderModel {
     DeliveryAddress? address;
     if (json['dia_chi_giao_hang'] != null) {
       try {
-        final addressJson = jsonDecode(json['dia_chi_giao_hang']);
-        address = DeliveryAddress.fromJson(addressJson);
+        final decoded = jsonDecode(json['dia_chi_giao_hang']);
+        if (decoded is Map<String, dynamic>) {
+          address = DeliveryAddress.fromJson(decoded);
+        } else {
+          debugPrint('Info: dia_chi_giao_hang is not a map: $decoded');
+        }
       } catch (e) {
         debugPrint('Error parsing address: $e');
       }
@@ -299,6 +310,16 @@ class OrderDetailResponse {
     required this.data,
   });
 
+  OrderDetailResponse copyWith({
+    bool? success,
+    OrderDetailData? data,
+  }) {
+    return OrderDetailResponse(
+      success: success ?? this.success,
+      data: data ?? this.data,
+    );
+  }
+
   factory OrderDetailResponse.fromJson(Map<String, dynamic> json) {
     return OrderDetailResponse(
       success: json['success'] ?? true,
@@ -330,6 +351,30 @@ class OrderDetailData {
     this.thanhToan,
     required this.items,
   });
+
+  OrderDetailData copyWith({
+    String? maDonHang,
+    String? maThanhToan,
+    String? maNguoiMua,
+    double? tongTien,
+    DeliveryAddress? diaChiGiaoHang,
+    String? tinhTrangDonHang,
+    DateTime? thoiGianGiaoHang,
+    PaymentInfo? thanhToan,
+    List<OrderItemDetail>? items,
+  }) {
+    return OrderDetailData(
+      maDonHang: maDonHang ?? this.maDonHang,
+      maThanhToan: maThanhToan ?? this.maThanhToan,
+      maNguoiMua: maNguoiMua ?? this.maNguoiMua,
+      tongTien: tongTien ?? this.tongTien,
+      diaChiGiaoHang: diaChiGiaoHang ?? this.diaChiGiaoHang,
+      tinhTrangDonHang: tinhTrangDonHang ?? this.tinhTrangDonHang,
+      thoiGianGiaoHang: thoiGianGiaoHang ?? this.thoiGianGiaoHang,
+      thanhToan: thanhToan ?? this.thanhToan,
+      items: items ?? this.items,
+    );
+  }
 
   factory OrderDetailData.fromJson(Map<String, dynamic> json) {
     // Parse địa chỉ giao hàng từ JSON string
@@ -400,6 +445,30 @@ class OrderItemDetail {
     this.donViBan,
   });
 
+  OrderItemDetail copyWith({
+    String? maNguyenLieu,
+    String? maGianHang,
+    int? soLuong,
+    double? giaCuoi,
+    double? thanhTien,
+    String? maMonAn,
+    IngredientInfo? nguyenLieu,
+    ShopInfo? gianHang,
+    String? donViBan,
+  }) {
+    return OrderItemDetail(
+      maNguyenLieu: maNguyenLieu ?? this.maNguyenLieu,
+      maGianHang: maGianHang ?? this.maGianHang,
+      soLuong: soLuong ?? this.soLuong,
+      giaCuoi: giaCuoi ?? this.giaCuoi,
+      thanhTien: thanhTien ?? this.thanhTien,
+      maMonAn: maMonAn ?? this.maMonAn,
+      nguyenLieu: nguyenLieu ?? this.nguyenLieu,
+      gianHang: gianHang ?? this.gianHang,
+      donViBan: donViBan ?? this.donViBan,
+    );
+  }
+
   factory OrderItemDetail.fromJson(Map<String, dynamic> json) {
     return OrderItemDetail(
       maNguyenLieu: json['ma_nguyen_lieu'] ?? '',
@@ -432,18 +501,35 @@ class IngredientInfo {
   final String maNguyenLieu;
   final String tenNguyenLieu;
   final String? donVi;
+  final String? hinhAnh;
 
   IngredientInfo({
     required this.maNguyenLieu,
     required this.tenNguyenLieu,
     this.donVi,
+    this.hinhAnh,
   });
+
+  IngredientInfo copyWith({
+    String? maNguyenLieu,
+    String? tenNguyenLieu,
+    String? donVi,
+    String? hinhAnh,
+  }) {
+    return IngredientInfo(
+      maNguyenLieu: maNguyenLieu ?? this.maNguyenLieu,
+      tenNguyenLieu: tenNguyenLieu ?? this.tenNguyenLieu,
+      donVi: donVi ?? this.donVi,
+      hinhAnh: hinhAnh ?? this.hinhAnh,
+    );
+  }
 
   factory IngredientInfo.fromJson(Map<String, dynamic> json) {
     return IngredientInfo(
       maNguyenLieu: json['ma_nguyen_lieu'] ?? '',
       tenNguyenLieu: json['ten_nguyen_lieu'] ?? '',
       donVi: json['don_vi'],
+      hinhAnh: json['hinh_anh'] ?? json['hinhAnh'],
     );
   }
 }

@@ -394,9 +394,8 @@ class _LoginViewState extends State<LoginView> {
                       // Chỉ navigate khi đăng nhập thành công
                       if (success && mounted) {
                         // Lấy vai trò người dùng để navigate đúng trang
-                        final userData = await getUserData();
-                        final vaiTro = userData?['vai_tro'] as String?;
-                        debugPrint('[LOGIN] 👤 User role: $vaiTro');
+                        final vaiTro = await getUserRole();
+                        debugPrint('[LOGIN] 👤 User role (normalized): $vaiTro');
                         
                         if (!mounted) return;
                         

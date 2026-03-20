@@ -64,8 +64,8 @@ class ProductDetailCubit extends Cubit<ProductDetailState> {
         maMonAn: maMonAn, // Lưu mã món ăn để reload sau
         productName: detail.tenMonAn,
         productImage: detail.hinhAnh.isNotEmpty 
-            ? (detail.hinhAnh.startsWith('http') ? detail.hinhAnh : '${AppConfig.imageBaseUrl}${detail.hinhAnh.startsWith('/') ? '' : '/'}${detail.hinhAnh}')
-            : 'assets/img/product_default.png',
+            ? detail.hinhAnh 
+            : 'assets/img/mon_an_icon.png',
         doKho: detail.doKho,
         khoangThoiGian: detail.khoangThoiGian,
         khauPhanTieuChuan: detail.khauPhanTieuChuan,
@@ -137,7 +137,7 @@ class ProductDetailCubit extends Cubit<ProductDetailState> {
     
     if (nguyenLieuList == null || nguyenLieuList.isEmpty) {
       debugPrint('🛒 [ADD ALL] Không có nguyên liệu');
-      return AddAllResult(success: 0, failed: 0, errors: ['Không có nguyên liệu']);
+      return AddAllResult(success: 0, failed: 0, errors: const ['Không có nguyên liệu']);
     }
 
     int successCount = 0;
@@ -207,6 +207,47 @@ class ProductDetailCubit extends Cubit<ProductDetailState> {
       failed: failedCount,
       errors: errors,
     );
+  }
+
+  /// Thêm một nguyên liệu vào giỏ hàng
+  Future<bool> addToCartIngredient(NguyenLieuInfo nl) async {
+    debugPrint('🛒 [ADD ONE] Bắt đầu thêm ${nl.ten} vào giỏ hàng');
+    
+    if (nl.maNguyenLieu == null || nl.maNguyenLieu!.isEmpty) {
+      debugPrint('   ❌ Không có mã nguyên liệu');
+      return false;
+    }
+
+    if (nl.gianHang == null || nl.gianHang!.isEmpty) {
+      debugPrint('   ❌ Không có gian hàng');
+      return false;
+    }
+
+    final gianHang = nl.gianHang!.first;
+    if (gianHang.maGianHang == null || gianHang.maGianHang!.isEmpty) {
+      debugPrint('   ❌ Không có mã gian hàng');
+      return false;
+    }
+
+    final soLuong = _parseSoLuong(nl.dinhLuong);
+
+    try {
+      await _cartApiService.addToCart(
+        maNguyenLieu: nl.maNguyenLieu!,
+        maGianHang: gianHang.maGianHang!,
+        soLuong: soLuong,
+        maCho: gianHang.maCho ?? 'C01',
+      );
+      
+      // Cập nhật số lượng items trong giỏ (giả lập hoặc fetch lại)
+      emit(state.copyWith(cartItemCount: state.cartItemCount + 1));
+      
+      debugPrint('   ✅ Đã thêm ${nl.ten} vào giỏ hàng');
+      return true;
+    } catch (e) {
+      debugPrint('   ❌ Lỗi thêm ${nl.ten}: $e');
+      return false;
+    }
   }
 
   /// Parse số lượng từ định lượng
@@ -283,34 +324,36 @@ class ProductDetailCubit extends Cubit<ProductDetailState> {
       // Tạo map giá từ kết quả
       final priceMap = <String, double?>{};
       final donViBanMap = <String, String?>{};
+      final imageMap = <String, String?>{};
       
       for (final result in results) {
         if (result != null) {
           final maNguyenLieu = result.key;
           final detail = result.value;
           // Ưu tiên giaCuoi, nếu không có thì dùng giaGoc
-          final gia = detail.detail.giaCuoi != null 
-              ? double.tryParse(detail.detail.giaCuoi!) 
-              : detail.detail.giaGoc;
+          final gia = detail.data.giaCuoi != null 
+              ? double.tryParse(detail.data.giaCuoi!) 
+              : detail.data.giaGoc;
           priceMap[maNguyenLieu] = gia;
-          donViBanMap[maNguyenLieu] = detail.detail.donVi;
+          donViBanMap[maNguyenLieu] = detail.data.donVi;
+          if (detail.data.hinhAnh != null && detail.data.hinhAnh!.isNotEmpty) {
+            imageMap[maNguyenLieu] = detail.data.hinhAnh;
+          }
         }
       }
       
       // Cập nhật state với giá mới (giữ lại gianHang)
       final updatedList = nguyenLieuList.map((nl) {
-        if (nl.maNguyenLieu != null && priceMap.containsKey(nl.maNguyenLieu)) {
+        if (nl.maNguyenLieu != null && (priceMap.containsKey(nl.maNguyenLieu) || imageMap.containsKey(nl.maNguyenLieu))) {
           return NguyenLieuInfo(
             maNguyenLieu: nl.maNguyenLieu,
             ten: nl.ten,
             dinhLuong: nl.dinhLuong,
             donVi: nl.donVi,
-            hinhAnh: nl.hinhAnh != null && nl.hinhAnh!.isNotEmpty
-                ? (nl.hinhAnh!.startsWith('http') ? nl.hinhAnh : '${AppConfig.imageBaseUrl}${nl.hinhAnh!.startsWith('/') ? '' : '/'}${nl.hinhAnh}')
-                : nl.hinhAnh,
+            hinhAnh: imageMap[nl.maNguyenLieu] ?? nl.hinhAnh,
             gia: priceMap[nl.maNguyenLieu],
             donViBan: donViBanMap[nl.maNguyenLieu] ?? nl.donViBan,
-            gianHang: nl.gianHang, // Giữ lại gianHang
+            gianHang: nl.gianHang, 
           );
         }
         return nl;

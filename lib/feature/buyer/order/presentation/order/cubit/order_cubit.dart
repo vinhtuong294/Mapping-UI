@@ -72,6 +72,7 @@ class OrderCubit extends Cubit<OrderState> {
   OrderStatusType _mapOrderStatus(String status) {
     switch (status) {
       case 'cho_xac_nhan':
+      case 'chua_xac_nhan':
         return OrderStatusType.pending;
       case 'da_xac_nhan':
         return OrderStatusType.processing;

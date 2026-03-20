@@ -351,10 +351,10 @@ class PaymentCubit extends Cubit<PaymentState> {
         }
         
         // Lấy selectedItems từ _orderSummary với format đúng API yêu cầu
-        // Input: { "selectedItems": [{ "ma_nguyen_lieu": "NL001", "ma_gian_hang": "GH001" }] }
+        // API CheckoutBody cần: ingredient_id và stall_id
         final selectedItems = _orderSummary!.items.map((item) => {
-          'ma_nguyen_lieu': item.id,
-          'ma_gian_hang': item.shopId,
+          'ingredient_id': item.id,
+          'stall_id': item.shopId,
         }).toList();
 
         if (selectedItems.isEmpty) {
@@ -515,10 +515,11 @@ class PaymentCubit extends Cubit<PaymentState> {
         }
 
         // Lấy selectedItems từ _orderSummary
+        // API CheckoutBody cần: ingredient_id và stall_id
         final selectedItems = _orderSummary!.items
             .map((item) => {
-                  'ma_nguyen_lieu': item.id,
-                  'ma_gian_hang': item.shopId,
+                  'ingredient_id': item.id,
+                  'stall_id': item.shopId,
                 })
             .toList();
 

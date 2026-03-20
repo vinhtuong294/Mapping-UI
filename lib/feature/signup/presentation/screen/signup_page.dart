@@ -36,36 +36,34 @@ class SignUpView extends StatefulWidget {
 class _SignUpViewState extends State<SignUpView> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
   @override
   void dispose() {
     _nameController.dispose();
-    _phoneController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('[SIGNUP] Building SignUpView...');
     return BlocListener<SignUpCubit, SignUpState>(
       listener: (context, state) {
+        debugPrint('[SIGNUP] State changed: $state');
         if (state is SignUpSuccess) {
-          // Show success message
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.message),
               backgroundColor: Colors.green,
             ),
           );
-          
-          // Navigate to Product/Home screen after successful registration
           Navigator.of(context).pushReplacementNamed('/login');
         } else if (state is SignUpFailure) {
-          // Show error message
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.errorMessage),
@@ -87,22 +85,19 @@ class _SignUpViewState extends State<SignUpView> {
           child: Container(
             color: Colors.white.withOpacity(0.3),
             child: SafeArea(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 40),
-                    
-                    // Logo
-                    _buildLogo(),
-                    
-                    const SizedBox(height: 50),
-                    
-                    // SignUp Form Container
-                    _buildSignUpForm(),
-                    
-                    const SizedBox(height: 20),
-                  ],
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const SizedBox(height: 20),
+                      _buildLogo(),
+                      const SizedBox(height: 30),
+                      _buildSignUpForm(),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -112,69 +107,63 @@ class _SignUpViewState extends State<SignUpView> {
     );
   }
 
-  /// Build logo
   Widget _buildLogo() {
-    return Container(
-      width: 206,
-      height: 91,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Image.asset(
-          'assets/img/splash_logo.png',
-          fit: BoxFit.contain,
-        ),
-      ),
+    return Image.asset(
+      'assets/img/splash_logo.png',
+      width: 180,
+      fit: BoxFit.contain,
     );
   }
 
-  /// Build signup form container
   Widget _buildSignUpForm() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFFDCF9E4).withOpacity(0.5),
-        borderRadius: BorderRadius.circular(10),
+        color: const Color(0xFFDCF9E4).withOpacity(0.8),
+        borderRadius: BorderRadius.circular(15),
         border: Border.all(
-          color: const Color(0xFF0272BA),
+          color: const Color(0xFF0272BA).withOpacity(0.5),
           width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Form(
         key: _formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Tab header
             _buildTabHeader(),
-            
-            const SizedBox(height: 40),
-            
-            // Email field
-            _buildEmailField(),
-            
-            const SizedBox(height: 20),
-            
-            // Password field
+            const SizedBox(height: 30),
+            _buildInputField(
+              controller: _nameController,
+              hintText: 'Tên*',
+              icon: Icons.person_outline,
+              validator: (value) => context.read<SignUpCubit>().validateName(value),
+            ),
+            const SizedBox(height: 15),
             _buildPasswordField(),
-            
+            const SizedBox(height: 15),
+            _buildConfirmPasswordField(),
+            const SizedBox(height: 15),
+            _buildInputField(
+              controller: _emailController,
+              hintText: 'Email*',
+              icon: Icons.email_outlined,
+              keyboardType: TextInputType.emailAddress,
+              validator: (value) => context.read<SignUpCubit>().validateEmail(value),
+            ),
             const SizedBox(height: 20),
-            
-            // Name field
-            _buildNameField(),
-            
-            
-            const SizedBox(height: 40),
-            
-            // SignUp button
+            _buildRoleSelection(),
+            const SizedBox(height: 25),
             _buildSignUpButton(),
-            
-            const SizedBox(height: 24),
-            
-            // Login link
+            const SizedBox(height: 15),
             _buildLoginLink(),
           ],
         ),
@@ -182,50 +171,44 @@ class _SignUpViewState extends State<SignUpView> {
     );
   }
 
-  /// Build tab header (Đăng nhập / Đăng ký)
   Widget _buildTabHeader() {
     return Row(
       children: [
-        // Đăng nhập tab (inactive)
         Expanded(
           child: GestureDetector(
-            onTap: () {
-              // TODO: Navigate to Login page
-              Navigator.of(context).pop();
-            },
+            onTap: () => Navigator.of(context).pop(),
             child: Text(
               'Đăng nhập',
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: 'Inter',
-                fontSize: 25,
+                fontSize: 22,
                 fontWeight: FontWeight.w700,
                 color: const Color(0xFF00B40F).withOpacity(0.5),
               ),
             ),
           ),
         ),
-        
-        const SizedBox(width: 20),
-        
-        // Đăng ký tab (active)
         Expanded(
           child: Column(
             children: [
               const Text(
                 'Đăng ký',
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: 'Inter',
-                  fontSize: 25,
+                  fontSize: 22,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF00B40F),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               Container(
-                height: 2,
-                width: 50,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFFF0606),
+                height: 3,
+                width: 60,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF0606),
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ],
@@ -235,143 +218,124 @@ class _SignUpViewState extends State<SignUpView> {
     );
   }
 
-  /// Build email field
-  Widget _buildEmailField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
+  Widget _buildInputField({
+    required TextEditingController controller,
+    required String hintText,
+    required IconData icon,
+    TextInputType keyboardType = TextInputType.text,
+    String? Function(String?)? validator,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(25),
+        border: Border.all(color: const Color(0xFF0272BA).withOpacity(0.3)),
+      ),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: keyboardType,
+        style: const TextStyle(fontSize: 16),
+        decoration: InputDecoration(
+          hintText: hintText,
+          prefixIcon: Icon(icon, color: Colors.grey[600], size: 22),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        ),
+        validator: validator,
+      ),
+    );
+  }
+
+  Widget _buildPasswordField() {
+    return BlocBuilder<SignUpCubit, SignUpState>(
+      buildWhen: (prev, curr) => curr is SignUpPasswordVisibilityChanged,
+      builder: (context, state) {
+        final isPasswordVisible = context.read<SignUpCubit>().isPasswordVisible;
+        return Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: const Color(0xFF0272BA),
-              width: 1,
-            ),
+            borderRadius: BorderRadius.circular(25),
+            border: Border.all(color: const Color(0xFF0272BA).withOpacity(0.3)),
           ),
-          child: Row(
-            children: [
-              // Icon
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Icon(
-                  Icons.person_outline,
+          child: TextFormField(
+            controller: _passwordController,
+            obscureText: !isPasswordVisible,
+            style: const TextStyle(fontSize: 16),
+            decoration: InputDecoration(
+              hintText: 'Mật khẩu*',
+              prefixIcon: Icon(Icons.lock_outline, color: Colors.grey[600], size: 22),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  isPasswordVisible ? Icons.visibility_outlined : Icons.visibility_off_outlined,
                   color: Colors.grey[600],
-                  size: 24,
+                  size: 20,
                 ),
+                onPressed: () => context.read<SignUpCubit>().togglePasswordVisibility(),
               ),
-              
-              // Text field
-              Expanded(
-                child: TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    hintText: 'Tên đăng nhập hoặc Email*',
-                    hintStyle: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 17,
-                      fontWeight: FontWeight.w400,
-                      color: Color(0xFF5E5C5C),
-                    ),
-                    border: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    errorBorder: InputBorder.none,
-                    focusedErrorBorder: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 0,
-                      vertical: 14,
-                    ),
-                  ),
-                  validator: (value) {
-                    return context.read<SignUpCubit>().validateEmail(value);
-                  },
-                ),
-              ),
-              
-              const SizedBox(width: 16),
-            ],
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            ),
+            validator: (value) => context.read<SignUpCubit>().validatePassword(value),
           ),
-        ),
-      ],
+        );
+      },
     );
   }
 
-  /// Build password field
-  Widget _buildPasswordField() {
+  Widget _buildConfirmPasswordField() {
+    return BlocBuilder<SignUpCubit, SignUpState>(
+      buildWhen: (prev, curr) => curr is SignUpPasswordVisibilityChanged,
+      builder: (context, state) {
+        final isPasswordVisible = context.read<SignUpCubit>().isPasswordVisible;
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(25),
+            border: Border.all(color: const Color(0xFF0272BA).withOpacity(0.3)),
+          ),
+          child: TextFormField(
+            controller: _confirmPasswordController,
+            obscureText: !isPasswordVisible,
+            style: const TextStyle(fontSize: 16),
+            decoration: InputDecoration(
+              hintText: 'Nhập lại mật khẩu*',
+              prefixIcon: Icon(Icons.lock_outline, color: Colors.grey[600], size: 22),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            ),
+            validator: (value) => context.read<SignUpCubit>().validateConfirmPassword(
+                  _passwordController.text,
+                  value,
+                ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildRoleSelection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const Text(
+          'Chọn Vai Trò:',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF000000),
+          ),
+        ),
+        const SizedBox(height: 10),
         BlocBuilder<SignUpCubit, SignUpState>(
+          buildWhen: (prev, curr) => curr is SignUpRoleChanged,
           builder: (context, state) {
-            final cubit = context.read<SignUpCubit>();
-            final isPasswordVisible = cubit.isPasswordVisible;
-            
-            return Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: const Color(0xFF0272BA),
-                  width: 1,
-                ),
-              ),
-              child: Row(
-                children: [
-                  // Icon
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Icon(
-                      Icons.lock_outline,
-                      color: Colors.grey[600],
-                      size: 24,
-                    ),
-                  ),
-                  
-                  // Text field
-                  Expanded(
-                    child: TextFormField(
-                      controller: _passwordController,
-                      obscureText: !isPasswordVisible,
-                      decoration: const InputDecoration(
-                        hintText: 'Mật khẩu*',
-                        hintStyle: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 17,
-                          fontWeight: FontWeight.w400,
-                          color: Color(0xFF5E5C5C),
-                        ),
-                        border: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        errorBorder: InputBorder.none,
-                        focusedErrorBorder: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 0,
-                          vertical: 14,
-                        ),
-                      ),
-                      validator: (value) {
-                        return cubit.validatePassword(value);
-                      },
-                    ),
-                  ),
-                  
-                  // Toggle visibility button
-                  IconButton(
-                    onPressed: () {
-                      cubit.togglePasswordVisibility();
-                    },
-                    icon: Icon(
-                      isPasswordVisible
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
+            final selectedRole = context.read<SignUpCubit>().selectedRole;
+            return Row(
+              children: [
+                _buildRoleOption('nguoi_mua', 'Người Mua', selectedRole == 'nguoi_mua'),
+                const SizedBox(width: 20),
+                _buildRoleOption('nguoi_ban', 'Người Bán', selectedRole == 'nguoi_ban'),
+              ],
             );
           },
         ),
@@ -379,70 +343,44 @@ class _SignUpViewState extends State<SignUpView> {
     );
   }
 
-  /// Build name field
-  Widget _buildNameField() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFF0272BA),
-          width: 1,
-        ),
-      ),
+  Widget _buildRoleOption(String role, String label, bool isSelected) {
+    return GestureDetector(
+      onTap: () => context.read<SignUpCubit>().setRole(role),
       child: Row(
         children: [
-          // Icon
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Icon(
-              Icons.person_outline,
-              color: Colors.grey[600],
-              size: 24,
-            ),
-          ),
-          
-          // Text field
-          Expanded(
-            child: TextFormField(
-              controller: _nameController,
-              keyboardType: TextInputType.name,
-              decoration: const InputDecoration(
-                hintText: 'Tên*',
-                hintStyle: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 17,
-                  fontWeight: FontWeight.w400,
-                  color: Color(0xFF5E5C5C),
-                ),
-                border: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                errorBorder: InputBorder.none,
-                focusedErrorBorder: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 0,
-                  vertical: 14,
-                ),
+          Container(
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: isSelected ? const Color(0xFF00B40F) : Colors.grey,
+                width: 2,
               ),
-              validator: (value) {
-                return context.read<SignUpCubit>().validateName(value);
-              },
+              color: isSelected ? const Color(0xFF00B40F) : Colors.transparent,
+            ),
+            child: isSelected
+                ? const Icon(Icons.check, size: 14, color: Colors.white)
+                : null,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 16,
+              color: isSelected ? const Color(0xFF00B40F) : Colors.black87,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
             ),
           ),
-          
-          const SizedBox(width: 16),
         ],
       ),
     );
   }
 
-  /// Build signup button
   Widget _buildSignUpButton() {
     return BlocBuilder<SignUpCubit, SignUpState>(
       builder: (context, state) {
         final isLoading = state is SignUpLoading;
-        
         return SizedBox(
           height: 50,
           child: ElevatedButton(
@@ -451,36 +389,32 @@ class _SignUpViewState extends State<SignUpView> {
                 : () async {
                     if (_formKey.currentState!.validate()) {
                       await context.read<SignUpCubit>().signUp(
-                        username: _emailController.text.trim(),
-                        password: _passwordController.text,
-                        fullName: _nameController.text.trim(),
-                        role: 'nguoi_mua',
-                      );
+                            username: _emailController.text.trim(),
+                            password: _passwordController.text,
+                            confirmPassword: _confirmPasswordController.text,
+                            fullName: _nameController.text.trim(),
+                          );
                     }
                   },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF00B40F),
-              foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(25),
               ),
-              elevation: 0,
+              elevation: 2,
             ),
             child: isLoading
                 ? const SizedBox(
                     height: 20,
                     width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                   )
                 : const Text(
                     'Đăng ký',
                     style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 25,
+                      fontSize: 20,
                       fontWeight: FontWeight.w700,
+                      color: Colors.white,
                     ),
                   ),
           ),
@@ -489,30 +423,21 @@ class _SignUpViewState extends State<SignUpView> {
     );
   }
 
-  /// Build login link
   Widget _buildLoginLink() {
     return Center(
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Wrap(
+        alignment: WrapAlignment.center,
         children: [
           const Text(
             'Bạn đã có tài khoản? ',
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 17,
-              fontWeight: FontWeight.w400,
-              color: Color(0xFF000000),
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.black54),
           ),
           GestureDetector(
-            onTap: () {
-              Navigator.of(context).pop();
-            },
+            onTap: () => Navigator.of(context).pop(),
             child: const Text(
               'Đăng nhập',
               style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 17,
+                fontSize: 16,
                 fontWeight: FontWeight.w700,
                 color: Color(0xFF00B40F),
               ),

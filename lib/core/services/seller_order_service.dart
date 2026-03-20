@@ -14,6 +14,7 @@ class SellerOrderService {
     int page = 1,
     int limit = 10,
     String? status,
+    String? maGianHang,
   }) async {
     try {
       final token = await getToken();
@@ -25,11 +26,18 @@ class SellerOrderService {
         'page': page.toString(),
         'limit': limit.toString(),
         if (status != null) 'status': status,
+        if (maGianHang != null) 'ma_gian_hang': maGianHang,
       };
 
-      final uri = Uri.parse('$_baseUrl/orders').replace(queryParameters: queryParams);
+      // REMOVE trailing slash to avoid 404
+      // Use join to ensure no double slashes or unwanted trailing slash
+      String urlString = '$_baseUrl/orders';
+      if (urlString.endsWith('/')) {
+        urlString = urlString.substring(0, urlString.length - 1);
+      }
+      final uri = Uri.parse(urlString).replace(queryParameters: queryParams);
       
-      debugPrint('📦 [SELLER ORDER] GET $uri');
+      debugPrint('📦 [SELLER ORDER] Request URI: ${uri.toString()}');
 
       final response = await http.get(
         uri,
@@ -39,12 +47,13 @@ class SellerOrderService {
         },
       );
 
-      debugPrint('📦 [SELLER ORDER] Response: ${response.statusCode}');
+      debugPrint('📦 [SELLER ORDER] Response Status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final jsonData = json.decode(utf8.decode(response.bodyBytes));
         return SellerOrdersResponse.fromJson(jsonData);
       } else {
+        debugPrint('❌ [SELLER ORDER] Failed body: ${response.body}');
         throw Exception('Failed to load orders: ${response.statusCode}');
       }
     } catch (e) {

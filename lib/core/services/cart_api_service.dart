@@ -33,14 +33,19 @@ class CartApiService {
         throw Exception('User not logged in');
       }
 
-    final url = Uri.parse('$_baseUrl/cart/items');
+      // API yêu cầu buyer_id ở query
+      final buyerId = await getUserId();
+      if (buyerId == null) {
+        throw Exception('Buyer ID not found');
+      }
+
+      final url = Uri.parse('$_baseUrl/cart/items?buyer_id=$buyerId');
       
+      // Backend yêu cầu các field: ingredient_id, stall_id, cart_quantity
       final requestBody = {
-        'ma_nguyen_lieu': maNguyenLieu,
-        'ma_gian_hang': maGianHang,
-        // Cho phép số lượng lẻ (ví dụ 0.5). Backend cần hỗ trợ giá trị này.
-        'so_luong': soLuong,
-        'ma_cho': maCho,
+        'ingredient_id': maNguyenLieu,
+        'stall_id': maGianHang,
+        'cart_quantity': soLuong == soLuong.toInt() ? soLuong.toInt() : soLuong,
       };
 
       print('🛒 [CART API] URL: $url');
@@ -86,6 +91,85 @@ class CartApiService {
     }
   }
 
+  /// Update item quantity in cart
+  Future<void> updateCartItem({
+    required String ingredientId,
+    required String stallId,
+    required String cartId,
+    required num quantity,
+  }) async {
+    try {
+      final token = await getToken();
+      if (token == null) throw Exception('User not logged in');
+      
+      final url = Uri.parse('$_baseUrl/cart/?cart_id=$cartId&ingredient_id=$ingredientId&stall_id=$stallId');
+      
+      final requestBody = {
+        'cart_quantity': quantity,
+      };
+
+      final response = await http.put(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode(requestBody),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to update cart item.');
+      }
+    } catch (e) {
+      if (AppConfig.enableApiLogging) AppLogger.error('❌ [CART API] Update item error: $e');
+      rethrow;
+    }
+  }
+
+  /// Add dish to cart
+  Future<AddToCartResponse> addDishToCart({
+    required String dishId,
+    required String marketId,
+  }) async {
+    try {
+      final token = await getToken();
+      if (token == null) throw Exception('User not logged in');
+
+      final buyerId = await getUserId();
+      if (buyerId == null) throw Exception('Buyer ID not found');
+
+      final url = Uri.parse('$_baseUrl/cart/dishes?buyer_id=$buyerId');
+      
+      final requestBody = {
+        'dish_id': dishId,
+        'market_id': marketId,
+      };
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode(requestBody),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final jsonData = json.decode(utf8.decode(response.bodyBytes));
+        final result = AddToCartResponse.fromJson(jsonData);
+        if (!result.success) {
+          throw Exception(result.message ?? 'Failed to add dish to cart');
+        }
+        return result;
+      } else {
+        throw Exception('Failed to add dish to cart.');
+      }
+    } catch (e) {
+      if (AppConfig.enableApiLogging) AppLogger.error('❌ [CART API] Add dish error: $e');
+      rethrow;
+    }
+  }
+
   /// Checkout giỏ hàng với các items đã chọn
   /// 
   /// Parameters:
@@ -109,10 +193,16 @@ class CartApiService {
         throw Exception('User not logged in');
       }
 
-      final url = Uri.parse('$_baseUrl/cart/checkout');
+      final buyerId = await getUserId();
+      if (buyerId == null) {
+        throw Exception('Buyer ID not found');
+      }
+
+      // API Checkout yêu cầu buyer_id trên URL
+      final url = Uri.parse('$_baseUrl/cart/checkout?buyer_id=$buyerId');
       
       final requestBody = <String, dynamic>{
-        'selectedItems': selectedItems,
+        'selected_items': selectedItems,
       };
       
       // Thêm payment_method nếu có
@@ -175,7 +265,13 @@ class CartApiService {
         throw Exception('User not logged in');
       }
 
-      final url = Uri.parse('$_baseUrl/cart');
+      // API giỏ hàng yêu cầu buyer_id trong query string
+      final buyerId = await getUserId();
+      if (buyerId == null) {
+        throw Exception('Buyer ID not found');
+      }
+
+      final url = Uri.parse('$_baseUrl/cart/?buyer_id=$buyerId');
 
       final response = await http.get(
         url,
@@ -204,10 +300,26 @@ class CartApiService {
         }
 
         return cartResponse;
+      } else if (response.statusCode == 404) {
+        // Backend trả 404 khi giỏ hàng trống → coi như giỏ hàng rỗng thay vì lỗi
+        if (AppConfig.enableApiLogging) {
+          AppLogger.info('🛒 [CART API] Cart is empty (404)');
+        }
+        return CartResponse(
+          success: true,
+          cart: CartSummary(
+            maDonHang: '',
+            tongTien: 0,
+            tongTienGoc: 0,
+            tietKiem: 0,
+            soMatHang: 0,
+          ),
+          items: const [],
+        );
       } else {
         throw Exception(
             'Failed to load cart: ${response.statusCode} - ${response.body}');
-      }
+      } 
     } catch (e) {
       if (AppConfig.enableApiLogging) {
         AppLogger.error('❌ [CART API] Error: $e');
@@ -222,6 +334,7 @@ class CartApiService {
   Future<DeleteCartItemResponse> deleteCartItem({
     required String maNguyenLieu,
     required String maGianHang,
+    String? cartId,
   }) async {
     if (AppConfig.enableApiLogging) {
       AppLogger.info('🗑️ [CART API] Deleting item: $maNguyenLieu from shop: $maGianHang');
@@ -234,7 +347,7 @@ class CartApiService {
         throw Exception('User not logged in');
       }
 
-      final url = Uri.parse('$_baseUrl/cart/items/$maNguyenLieu/$maGianHang');
+      final url = Uri.parse('$_baseUrl/cart/?cart_id=${cartId ?? ''}&ingredient_id=$maNguyenLieu&stall_id=$maGianHang');
 
       print('🗑️ [CART API] DELETE URL: $url');
 

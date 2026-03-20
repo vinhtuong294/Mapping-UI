@@ -26,6 +26,12 @@ class EditProfileLoaded extends EditProfileState {
   final String? nganHang;
   final double? canNang;
   final double? chieuCao;
+  
+  // New fields for maps
+  final double? latitude;
+  final double? longitude;
+  final List<dynamic> addressSuggestions;
+  final bool isSearchingAddress;
 
   const EditProfileLoaded({
     required this.maNguoiDung,
@@ -38,6 +44,10 @@ class EditProfileLoaded extends EditProfileState {
     this.nganHang,
     this.canNang,
     this.chieuCao,
+    this.latitude,
+    this.longitude,
+    this.addressSuggestions = const [],
+    this.isSearchingAddress = false,
   });
 
   @override
@@ -52,6 +62,10 @@ class EditProfileLoaded extends EditProfileState {
         nganHang,
         canNang,
         chieuCao,
+        latitude,
+        longitude,
+        addressSuggestions,
+        isSearchingAddress,
       ];
 
   EditProfileLoaded copyWith({
@@ -65,6 +79,10 @@ class EditProfileLoaded extends EditProfileState {
     String? nganHang,
     double? canNang,
     double? chieuCao,
+    double? latitude,
+    double? longitude,
+    List<dynamic>? addressSuggestions,
+    bool? isSearchingAddress,
   }) {
     return EditProfileLoaded(
       maNguoiDung: maNguoiDung ?? this.maNguoiDung,
@@ -77,6 +95,10 @@ class EditProfileLoaded extends EditProfileState {
       nganHang: nganHang ?? this.nganHang,
       canNang: canNang ?? this.canNang,
       chieuCao: chieuCao ?? this.chieuCao,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      addressSuggestions: addressSuggestions ?? this.addressSuggestions,
+      isSearchingAddress: isSearchingAddress ?? this.isSearchingAddress,
     );
   }
 }

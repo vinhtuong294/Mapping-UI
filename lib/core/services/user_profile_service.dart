@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
 import 'auth/simple_auth_helper.dart';
@@ -63,29 +64,28 @@ class UserProfileService {
         throw Exception('User not logged in');
       }
 
-      final url = Uri.parse('$_baseUrl/me');
+      final url = Uri.parse('$_baseUrl/profile');
+      final body = json.encode({
+        'user_name': tenNguoiDung,
+        'gender': gioiTinh,
+        'phone': sdt,
+        'address': diaChi,
+        'bank_account': soTaiKhoan,
+        'bank_name': nganHang,
+        'weight': canNang,
+        'height': chieuCao,
+      });
 
-      final body = <String, dynamic>{
-        'ten_nguoi_dung': tenNguoiDung,
-      };
+      debugPrint('👤 [USER PROFILE] PUT $url');
+      debugPrint('👤 [USER PROFILE] Body: $body');
 
-      if (gioiTinh != null) body['gioi_tinh'] = gioiTinh;
-      if (sdt != null) body['sdt'] = sdt;
-      if (diaChi != null) body['dia_chi'] = diaChi;
-      if (soTaiKhoan != null) body['so_tai_khoan'] = soTaiKhoan;
-      if (nganHang != null) body['ngan_hang'] = nganHang;
-      if (canNang != null) body['can_nang'] = canNang;
-      if (chieuCao != null) body['chieu_cao'] = chieuCao;
-
-      print('👤 [PROFILE SERVICE] Request body: ${json.encode(body)}');
-
-      final response = await http.patch(
+      final response = await http.put(
         url,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: json.encode(body),
+        body: body,
       );
 
       print('👤 [PROFILE SERVICE] Response status: ${response.statusCode}');
@@ -148,17 +148,17 @@ class UserProfileData {
 
   factory UserProfileData.fromJson(Map<String, dynamic> json) {
     return UserProfileData(
-      maNguoiDung: json['ma_nguoi_dung'] ?? '',
-      tenDangNhap: json['ten_dang_nhap'] ?? '',
-      tenNguoiDung: json['ten_nguoi_dung'] ?? '',
-      vaiTro: json['vai_tro'] ?? '',
-      gioiTinh: json['gioi_tinh'],
-      sdt: json['sdt'],
-      diaChi: json['dia_chi'],
-      soTaiKhoan: json['so_tai_khoan'],
-      nganHang: json['ngan_hang'],
-      canNang: _parseDouble(json['can_nang']),
-      chieuCao: _parseDouble(json['chieu_cao']),
+      maNguoiDung: (json['ma_nguoi_dung'] ?? json['user_id']) as String? ?? '',
+      tenDangNhap: (json['ten_dang_nhap'] ?? json['login_name']) as String? ?? '',
+      tenNguoiDung: (json['ten_nguoi_dung'] ?? json['user_name']) as String? ?? '',
+      vaiTro: (json['vai_tro'] ?? json['role']) as String? ?? '',
+      gioiTinh: json['gioi_tinh'] ?? json['gender'],
+      sdt: json['sdt'] ?? json['phone'],
+      diaChi: json['dia_chi'] ?? json['address'],
+      soTaiKhoan: json['so_tai_khoan'] ?? json['bank_account'],
+      nganHang: json['ngan_hang'] ?? json['bank_name'],
+      canNang: _parseDouble(json['can_nang'] ?? json['weight']),
+      chieuCao: _parseDouble(json['chieu_cao'] ?? json['height']),
     );
   }
 

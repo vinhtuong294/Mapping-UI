@@ -44,20 +44,41 @@ class SignUpPasswordVisibilityChanged extends SignUpState {
   List<Object?> get props => [isPasswordVisible];
 }
 
+/// State thay đổi vai trò
+class SignUpRoleChanged extends SignUpState {
+  final String role;
+
+  const SignUpRoleChanged({required this.role});
+
+  @override
+  List<Object?> get props => [role];
+}
+
 /// State validation error
 class SignUpValidationError extends SignUpState {
   final String? nameError;
   final String? phoneError;
   final String? emailError;
   final String? passwordError;
+  final String? confirmPasswordError;
+  final String? roleError;
 
   const SignUpValidationError({
     this.nameError,
     this.phoneError,
     this.emailError,
     this.passwordError,
+    this.confirmPasswordError,
+    this.roleError,
   });
 
   @override
-  List<Object?> get props => [nameError, phoneError, emailError, passwordError];
+  List<Object?> get props => [
+        nameError,
+        phoneError,
+        emailError,
+        passwordError,
+        confirmPasswordError,
+        roleError,
+      ];
 }

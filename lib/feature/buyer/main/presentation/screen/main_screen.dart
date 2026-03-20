@@ -3,6 +3,7 @@ import '../../../../buyer/home/presentation/screen/home_screen.dart';
 import '../../../../buyer/product/presentation/screen/product_screen.dart';
 import '../../../../buyer/ingredient/presentation/ingredient/screen/ingredient_screen.dart';
 import '../../../../user/presentation/screen/user_screen.dart';
+import '../../../../buyer/cart/presentation/screen/cart_page.dart';
 import '../../../../../core/widgets/shared_bottom_navigation.dart';
 
 /// Main Screen với IndexedStack để giữ state của các trang
@@ -31,15 +32,12 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _pages = const [
     HomeScreen(),
     ProductScreen(),
-    SizedBox.shrink(), // Center logo - không có trang
+    CartPage(), // Trang giỏ hàng
     IngredientScreen(),
     UserScreen(),
   ];
 
   void _onTabTapped(int index) {
-    // Không làm gì nếu là center item (index 2)
-    if (index == 2) return;
-    
     setState(() {
       _currentIndex = index;
     });

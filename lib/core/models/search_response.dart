@@ -1,3 +1,4 @@
+import 'package:dngo/core/config/app_config.dart';
 /// Model cho search response
 class SearchResponse {
   final bool success;
@@ -10,8 +11,10 @@ class SearchResponse {
 
   factory SearchResponse.fromJson(Map<String, dynamic> json) {
     return SearchResponse(
-      success: json['success'] as bool,
-      data: SearchData.fromJson(json['data'] as Map<String, dynamic>),
+      success: json['success'] as bool? ?? false,
+      data: json['data'] != null 
+          ? SearchData.fromJson(json['data'] as Map<String, dynamic>)
+          : SearchData(stalls: [], dishes: [], ingredients: []),
     );
   }
 }
@@ -62,11 +65,15 @@ class SearchStall {
   });
 
   factory SearchStall.fromJson(Map<String, dynamic> json) {
+    String? rawImage = json['image'] as String? ?? json['hinh_anh'] as String?;
+    String? processedImage = rawImage != null
+        ? (rawImage.contains('http') ? rawImage : '${AppConfig.baseUrl}$rawImage')
+        : null;
     return SearchStall(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      type: json['type'] as String,
-      image: json['image'] as String?,
+      id: (json['id'] ?? json['ma_gian_hang'] ?? '').toString(),
+      name: (json['name'] ?? json['ten_gian_hang'] ?? '').toString(),
+      type: (json['type'] ?? 'stall').toString(),
+      image: processedImage,
     );
   }
 }
@@ -85,11 +92,15 @@ class SearchDish {
   });
 
   factory SearchDish.fromJson(Map<String, dynamic> json) {
+    String? rawImage = json['image'] as String? ?? json['hinh_anh'] as String?;
+    String? processedImage = rawImage != null
+        ? (rawImage.contains('http') ? rawImage : '${AppConfig.baseUrl}$rawImage')
+        : null;
     return SearchDish(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      type: json['type'] as String,
-      image: json['image'] as String?,
+      id: (json['id'] ?? json['ma_mon_an'] ?? '').toString(),
+      name: (json['name'] ?? json['ten_mon_an'] ?? '').toString(),
+      type: (json['type'] ?? 'dish').toString(),
+      image: processedImage,
     );
   }
 }
@@ -108,11 +119,15 @@ class SearchIngredient {
   });
 
   factory SearchIngredient.fromJson(Map<String, dynamic> json) {
+    String? rawImage = json['image'] as String? ?? json['hinh_anh'] as String?;
+    String? processedImage = rawImage != null
+        ? (rawImage.contains('http') ? rawImage : '${AppConfig.baseUrl}$rawImage')
+        : null;
     return SearchIngredient(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      type: json['type'] as String,
-      image: json['image'] as String?,
+      id: (json['id'] ?? json['ma_nguyen_lieu'] ?? '').toString(),
+      name: (json['name'] ?? json['ten_nguyen_lieu'] ?? '').toString(),
+      type: (json['type'] ?? 'ingredient').toString(),
+      image: processedImage,
     );
   }
 }
