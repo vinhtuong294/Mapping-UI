@@ -915,12 +915,12 @@ class _OrderDetailViewState extends State<OrderDetailView> {
           ),
           child: Row(
             children: [
-              // Shop image
+              // Product/Shop image
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: item.gianHang?.hinhAnh != null
+                child: (item.nguyenLieu?.hinhAnh != null || item.gianHang?.hinhAnh != null)
                     ? Image.network(
-                        item.gianHang!.hinhAnh!,
+                        item.nguyenLieu?.hinhAnh ?? item.gianHang!.hinhAnh!,
                         width: 56,
                         height: 56,
                         fit: BoxFit.cover,
@@ -929,7 +929,7 @@ class _OrderDetailViewState extends State<OrderDetailView> {
                             width: 56,
                             height: 56,
                             color: Colors.grey[200],
-                            child: const Icon(Icons.store, color: Colors.grey),
+                            child: const Icon(Icons.image, color: Colors.grey),
                           );
                         },
                       )
@@ -937,7 +937,7 @@ class _OrderDetailViewState extends State<OrderDetailView> {
                         width: 56,
                         height: 56,
                         color: Colors.grey[200],
-                        child: const Icon(Icons.store, color: Colors.grey),
+                        child: const Icon(Icons.image, color: Colors.grey),
                       ),
               ),
               
@@ -1471,11 +1471,8 @@ class _OrderDetailViewState extends State<OrderDetailView> {
       child: BlocBuilder<OrderDetailCubit, OrderDetailState>(
         builder: (context, state) {
           final isProcessing = state is OrderDetailProcessing;
-          
           return GestureDetector(
-            // onTap: isProcessing ? null : () => _showCancelConfirmDialog(context, maDonHang),
-             onTap: () => {},
-            
+            onTap: isProcessing ? null : () => _showCancelConfirmDialog(context, maDonHang),
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 14),

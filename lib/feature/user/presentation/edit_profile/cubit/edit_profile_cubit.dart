@@ -1,12 +1,16 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../../core/services/user_profile_service.dart';
+import '../../../../../core/services/geocoding_service.dart';
+import 'dart:async';
 
 part 'edit_profile_state.dart';
 
 /// Cubit quản lý logic cho Edit Profile
 class EditProfileCubit extends Cubit<EditProfileState> {
   final UserProfileService _profileService = UserProfileService();
+  final GeocodingService _geocodingService = GeocodingService();
+  Timer? _debounce;
   
   EditProfileCubit() : super(EditProfileInitial());
 
@@ -55,11 +59,52 @@ class EditProfileCubit extends Cubit<EditProfileState> {
     }
   }
 
-  /// Cập nhật địa chỉ
+  /// Cập nhật địa chỉ và tìm kiếm gợi ý
   void updateAddress(String address) {
     final currentState = state;
     if (currentState is EditProfileLoaded) {
       emit(currentState.copyWith(address: address));
+      
+      // Debounce search
+      if (_debounce?.isActive ?? false) _debounce!.cancel();
+      _debounce = Timer(const Duration(milliseconds: 500), () async {
+        if (address.length >= 3) {
+          emit(currentState.copyWith(isSearchingAddress: true, addressSuggestions: []));
+          final suggestions = await _geocodingService.searchAddress(address);
+          if (isClosed) return;
+          
+          final newState = state;
+          if (newState is EditProfileLoaded) {
+            emit(newState.copyWith(
+              isSearchingAddress: false, 
+              addressSuggestions: suggestions
+            ));
+          }
+        } else {
+          emit(currentState.copyWith(addressSuggestions: []));
+        }
+      });
+    }
+  }
+
+  /// Chọn một gợi ý từ danh sách
+  void selectSuggestion(MapSuggestion suggestion) {
+    final currentState = state;
+    if (currentState is EditProfileLoaded) {
+      emit(currentState.copyWith(
+        address: suggestion.displayName,
+        latitude: suggestion.lat,
+        longitude: suggestion.lon,
+        addressSuggestions: [],
+      ));
+    }
+  }
+
+  /// Xóa danh sách gợi ý
+  void clearSuggestions() {
+    final currentState = state;
+    if (currentState is EditProfileLoaded) {
+      emit(currentState.copyWith(addressSuggestions: []));
     }
   }
 

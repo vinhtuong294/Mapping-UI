@@ -88,6 +88,27 @@ Future<bool> logIn(BuildContext context, String username, String password) async
         // Lưu login_time để kiểm tra token expiration
         await prefs.setString('login_time', DateTime.now().toIso8601String());
         
+        // Fetch buyer_id from /auth/me (buyer_id khác với user_id trong login response)
+        try {
+          final meResponse = await http.get(
+            Uri.parse(AppConfig.fullAuthMeUrl),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+          ).timeout(const Duration(seconds: 10));
+          if (meResponse.statusCode == 200) {
+            final meData = jsonDecode(meResponse.body);
+            final buyerId = meData['data']?['buyer_id'] as String?;
+            if (buyerId != null && buyerId.isNotEmpty) {
+              await prefs.setString('buyer_id', buyerId);
+              print('[LOGIN] 🛒 buyer_id saved: $buyerId');
+            }
+          }
+        } catch (e) {
+          print('[LOGIN] ⚠️ Could not fetch buyer_id from /auth/me: $e');
+        }
+        
         final userDisplayName = userData['ten_dang_nhap'] ?? username;
         print('[LOGIN] ✅ Success - username: $userDisplayName');
         print('[LOGIN] 🎫 Token saved: ${token.substring(0, 20)}...');
@@ -248,6 +269,7 @@ Future<void> logOut() async {
     await prefs.remove(SimpleAuthHelper._userDataKey);
     await prefs.remove(SimpleAuthHelper._isLoggedInKey);
     await prefs.remove('login_time');
+    await prefs.remove('buyer_id'); // Xóa buyer_id khi đăng xuất
     
     print('[LOGOUT] ✅ Đăng xuất thành công - Đã xóa token và user data');
     
@@ -314,17 +336,86 @@ Future<Map<String, dynamic>?> getUserData() async {
   }
 }
 
-/// Lấy User ID (Mã người dùng/Buyer ID) đã lưu
-Future<String?> getUserId() async {
+/// Lấy vai trò người dùng đã lưu và chuẩn hóa về 'nguoi_mua' / 'nguoi_ban'
+Future<String?> getUserRole() async {
   try {
     final userData = await getUserData();
+    if (userData == null) return null;
+
+    // Các key có thể chứa thông tin vai trò
+    final dynamic rawRole =
+        userData['vai_tro'] ?? userData['role'] ?? userData['user_type'];
+
+    if (rawRole == null) return null;
+
+    final roleStr = rawRole.toString().toLowerCase().trim();
+
+    // Chuẩn hóa một số giá trị thường gặp
+    if (roleStr == 'nguoi_ban' ||
+        roleStr == 'seller' ||
+        roleStr == 'seller_role') {
+      return 'nguoi_ban';
+    }
+    if (roleStr == 'nguoi_mua' ||
+        roleStr == 'buyer' ||
+        roleStr == 'buyer_role' ||
+        roleStr == 'khach_hang') {
+      return 'nguoi_mua';
+    }
+    if (roleStr == 'quan_ly_cho' || roleStr == 'admin' || roleStr == 'manager') {
+      return 'quan_ly_cho';
+    }
+
+    return roleStr.isEmpty ? null : roleStr;
+  } catch (e) {
+    print('[AUTH] ❌ Lỗi lấy vai trò: $e');
+    return null;
+  }
+}
+
+/// Lấy Buyer ID (dành cho Cart API)
+/// Ưu tiên lấy buyer_id đã fetch từ /auth/me lúc đăng nhập
+Future<String?> getUserId() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    // Ưu tiên buyer_id được lưu từ /auth/me (đây là ID dùng cho Cart API)
+    final savedBuyerId = prefs.getString('buyer_id');
+    if (savedBuyerId != null && savedBuyerId.isNotEmpty) {
+      return savedBuyerId;
+    }
+    
+    // Nếu chưa có buyer_id (user đang login từ session cũ), fetch từ /auth/me
+    final token = await getToken();
+    if (token != null) {
+      try {
+        final meResponse = await http.get(
+          Uri.parse(AppConfig.fullAuthMeUrl),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        ).timeout(const Duration(seconds: 10));
+        if (meResponse.statusCode == 200) {
+          final meData = jsonDecode(meResponse.body);
+          final buyerId = meData['data']?['buyer_id'] as String?;
+          if (buyerId != null && buyerId.isNotEmpty) {
+            await prefs.setString('buyer_id', buyerId);
+            print('[AUTH] 🛒 buyer_id fetched and saved: $buyerId');
+            return buyerId;
+          }
+        }
+      } catch (e) {
+        print('[AUTH] ⚠️ Could not fetch buyer_id from /auth/me: $e');
+      }
+    }
+    
+    // Fallback cuối: lấy từ userData (không chính xác nhưng tránh crash)
+    final userData = await getUserData();
     if (userData != null) {
-      // Ưu tiên các key ID phổ biến từ API
-      // Hỗ trợ cả người dùng chung (user_id, ma_nguoi_dung) và người mua (ma_nguoi_mua, buyer_id)
-      return userData['user_id'] ??
+      return userData['buyer_id'] ??
+          userData['user_id'] ??
           userData['ma_nguoi_dung'] ??
           userData['ma_nguoi_mua'] ??
-          userData['buyer_id'] ??
           userData['sub'];
     }
     return null;

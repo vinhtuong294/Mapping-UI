@@ -96,9 +96,6 @@ class SharedBottomNavigation extends StatelessWidget {
     
     return InkWell(
       onTap: () {
-        // Nếu là center item, không làm gì
-        if (isCenter) return;
-        
         // Nếu đã được chọn, không làm gì
         if (isSelected) return;
         

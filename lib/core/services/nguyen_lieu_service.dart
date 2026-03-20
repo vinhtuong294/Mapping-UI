@@ -21,6 +21,7 @@ class NguyenLieuService {
     String order = 'asc',
     String? maCho, // Thêm parameter mã chợ
     String? maNhomNguyenLieu, // Thêm parameter mã nhóm nguyên liệu
+    String? search, // Thêm parameter search
     bool hinhAnh = true, // Thêm parameter hình ảnh
   }) async {
     try {
@@ -34,6 +35,7 @@ class NguyenLieuService {
         'hinh_anh': hinhAnh.toString(),
         if (maCho != null && maCho.isNotEmpty) 'ma_cho': maCho,
         if (maNhomNguyenLieu != null && maNhomNguyenLieu.isNotEmpty) 'ma_nhom_nguyen_lieu': maNhomNguyenLieu,
+        if (search != null && search.isNotEmpty) 'search': search,
       };
       
       final uri = Uri.parse('$baseUrl/nguyen-lieu').replace(

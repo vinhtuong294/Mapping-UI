@@ -77,10 +77,12 @@ class NguyenLieuResponse {
 
   factory NguyenLieuResponse.fromJson(Map<String, dynamic> json) {
     return NguyenLieuResponse(
-      data: (json['data'] as List<dynamic>)
+      data: (json['data'] as List<dynamic>? ?? [])
           .map((item) => NguyenLieuModel.fromJson(item as Map<String, dynamic>))
           .toList(),
-      meta: NguyenLieuMeta.fromJson(json['meta'] as Map<String, dynamic>),
+      meta: json['meta'] != null 
+          ? NguyenLieuMeta.fromJson(json['meta'] as Map<String, dynamic>)
+          : NguyenLieuMeta(page: 1, limit: 12, total: 0, hasNext: false),
     );
   }
 }

@@ -154,6 +154,7 @@ class _SearchViewState extends State<_SearchView> {
           _buildSectionHeader('Món ăn'),
           ...data.dishes.take(5).map((item) => _buildSuggestionItem(
             icon: Icons.restaurant,
+            imageUrl: item.image,
             title: item.name,
             subtitle: item.type,
             onTap: () => _navigateToResult(item.name),
@@ -164,6 +165,7 @@ class _SearchViewState extends State<_SearchView> {
           _buildSectionHeader('Nguyên liệu'),
           ...data.ingredients.take(5).map((item) => _buildSuggestionItem(
             icon: Icons.eco,
+            imageUrl: item.image,
             title: item.name,
             subtitle: item.type,
             onTap: () => _navigateToResult(item.name),
@@ -174,6 +176,7 @@ class _SearchViewState extends State<_SearchView> {
           _buildSectionHeader('Gian hàng'),
           ...data.stalls.take(5).map((item) => _buildSuggestionItem(
             icon: Icons.store,
+            imageUrl: item.image,
             title: item.name,
             subtitle: item.type,
             onTap: () => _navigateToResult(item.name),
@@ -216,12 +219,30 @@ class _SearchViewState extends State<_SearchView> {
 
   Widget _buildSuggestionItem({
     required IconData icon,
+    String? imageUrl,
     required String title,
     required String subtitle,
     required VoidCallback onTap,
   }) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF00B40F)),
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF2F2F7),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: imageUrl != null && imageUrl.isNotEmpty
+              ? Image.network(
+                  imageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Icon(icon, color: const Color(0xFF00B40F), size: 20),
+                )
+              : Icon(icon, color: const Color(0xFF00B40F), size: 20),
+        ),
+      ),
       title: Text(
         title,
         style: const TextStyle(fontFamily: 'Roboto', fontSize: 15, color: Color(0xFF1C1C1E)),

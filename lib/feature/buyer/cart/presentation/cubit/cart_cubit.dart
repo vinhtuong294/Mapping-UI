@@ -3,6 +3,8 @@ import 'package:equatable/equatable.dart';
 import '../../../../../core/utils/app_logger.dart';
 import '../../../../../core/config/app_config.dart';
 import '../../../../../core/services/cart_api_service.dart';
+import '../../../../../core/services/nguyen_lieu_service.dart';
+import '../../../../../core/dependency/injection.dart';
 
 part 'cart_state.dart';
 
@@ -10,6 +12,7 @@ part 'cart_state.dart';
 class CartCubit extends Cubit<CartState> {
   List<CartItem> _cartItems = [];
   Set<String> _selectedItemIds = {};
+  String? _cartId;
   
   CartCubit() : super(CartInitial());
 
@@ -20,6 +23,7 @@ class CartCubit extends Cubit<CartState> {
       emit(CartLoading());
       final cartApiService = CartApiService();
       final cartResponse = await cartApiService.getCart();
+      _cartId = cartResponse.cart.maDonHang;
       
       if (isClosed) return;
       
@@ -39,6 +43,26 @@ class CartCubit extends Cubit<CartState> {
           isSelected: false,
         );
       }).toList();
+
+      // Enrich images if missing
+      try {
+        final nguyenLieuService = getDependency<NguyenLieuService>();
+        await Future.wait(_cartItems.where((item) => item.productImage.isEmpty).map((item) async {
+          try {
+            final detail = await nguyenLieuService.getNguyenLieuDetail(item.productId);
+            if (detail.data.hinhAnh != null && detail.data.hinhAnh!.isNotEmpty) {
+              final index = _cartItems.indexWhere((i) => i.id == item.id);
+              if (index != -1) {
+                _cartItems[index] = _cartItems[index].copyWith(productImage: detail.data.hinhAnh);
+              }
+            }
+          } catch (e) {
+            AppLogger.warning('⚠️ [CART] Could not fetch image for ${item.productId}: $e');
+          }
+        }));
+      } catch (e) {
+        AppLogger.error('❌ [CART] Error enriching images: $e');
+      }
       
       final totalAmount = _calculateTotalAmount();
 
@@ -99,7 +123,16 @@ class CartCubit extends Cubit<CartState> {
 
     try {
       emit(CartUpdating());
-      await Future.delayed(const Duration(milliseconds: 300));
+      
+      final item = _cartItems.firstWhere((i) => i.id == itemId);
+      final cartApiService = CartApiService();
+      
+      await cartApiService.updateCartItem(
+        ingredientId: item.productId,
+        stallId: item.shopId ?? '',
+        cartId: _cartId ?? '',
+        quantity: newQuantity,
+      );
 
       _cartItems = _cartItems.map((item) {
         if (item.id == itemId) return item.copyWith(quantity: newQuantity);
@@ -128,6 +161,7 @@ class CartCubit extends Cubit<CartState> {
       await cartApiService.deleteCartItem(
         maNguyenLieu: item.productId,
         maGianHang: item.shopId ?? '',
+        cartId: _cartId, // Pass cartId here
       );
 
       // Xóa khỏi local state
@@ -156,7 +190,7 @@ class CartCubit extends Cubit<CartState> {
 
       final selectedItems = _cartItems
           .where((item) => _selectedItemIds.contains(item.id))
-          .map((item) => {'ma_nguyen_lieu': item.productId, 'ma_gian_hang': item.shopId ?? ''})
+          .map((item) => {'ingredient_id': item.productId, 'stall_id': item.shopId ?? ''})
           .toList();
 
       if (AppConfig.enableApiLogging) AppLogger.info('💳 [CART] Selected items: $selectedItems');

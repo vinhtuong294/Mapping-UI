@@ -389,7 +389,7 @@ class _ProductViewState extends State<ProductView> {
                     productName: monAn.tenMonAn,
                     imagePath: imageUrl.isNotEmpty
                         ? (imageUrl.startsWith('http') ? imageUrl : '${AppConfig.imageBaseUrl}${imageUrl.startsWith('/') ? '' : '/'}$imageUrl')
-                        : 'assets/img/product_default.png',
+                        : 'assets/img/mon_an_icon.png',
                     servings: monAnWithImage.servings,
                     difficulty: monAnWithImage.difficulty,
                     cookTime: monAnWithImage.cookTime,

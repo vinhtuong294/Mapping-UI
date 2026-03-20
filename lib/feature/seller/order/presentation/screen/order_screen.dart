@@ -78,7 +78,7 @@ class _SellerOrderViewState extends State<SellerOrderView> {
 
   Widget _buildHeader(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -86,18 +86,20 @@ class _SellerOrderViewState extends State<SellerOrderView> {
         ],
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text(
-            'Đơn hàng của tôi',
-            style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 20, color: Color(0xFF1F2937)),
+          IconButton(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(Icons.arrow_back, size: 24),
+            color: const Color(0xFF1F2937),
           ),
-          Row(
-            children: [
-              IconButton(onPressed: () {}, icon: const Icon(Icons.search, size: 24), color: const Color(0xFF1F2937)),
-              IconButton(onPressed: () {}, icon: const Icon(Icons.tune, size: 24), color: const Color(0xFF1F2937)),
-            ],
+          const Expanded(
+            child: Text(
+              'Đơn hàng của tôi',
+              style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 20, color: Color(0xFF1F2937)),
+            ),
           ),
+          IconButton(onPressed: () {}, icon: const Icon(Icons.search, size: 24), color: const Color(0xFF1F2937)),
+          IconButton(onPressed: () {}, icon: const Icon(Icons.tune, size: 24), color: const Color(0xFF1F2937)),
         ],
       ),
     );

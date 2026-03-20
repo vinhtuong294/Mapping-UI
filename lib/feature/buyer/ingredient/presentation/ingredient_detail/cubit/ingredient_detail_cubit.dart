@@ -44,7 +44,7 @@ class IngredientDetailCubit extends Cubit<IngredientDetailState> {
       if (_nguyenLieuService != null) {
         final response = await _nguyenLieuService!.getNguyenLieuDetail(maNguyenLieu);
         
-        final detail = response.detail;
+        final detail = response.data;
         
         // Convert sellers từ API
         final sellers = response.sellers.data.map((seller) {
@@ -79,7 +79,7 @@ class IngredientDetailCubit extends Cubit<IngredientDetailState> {
         emit(state.copyWith(
           maNguyenLieu: detail.maNguyenLieu,
           ingredientName: detail.tenNguyenLieu,
-          ingredientImage: detail.hinhAnhMoiNhat ?? '',
+          ingredientImage: detail.hinhAnh ?? '',
           price: displayPrice,
           unit: displayUnit,
           shopName: detail.tenNhomNguyenLieu,
@@ -185,23 +185,34 @@ class IngredientDetailCubit extends Cubit<IngredientDetailState> {
 
   /// Add to cart
   Future<void> addToCart() async {
-    print('🛒 [ADD TO CART] Starting...');
-    print('🛒 [ADD TO CART] maNguyenLieu: ${state.maNguyenLieu}');
-    print('🛒 [ADD TO CART] selectedSeller: ${state.selectedSeller?.tenGianHang} (${state.selectedSeller?.maGianHang})');
+    if (state.isAddingToCart) return;
+    
+    debugPrint('🛒 [ADD TO CART] Starting...');
+    debugPrint('🛒 [ADD TO CART] maNguyenLieu: ${state.maNguyenLieu}');
+    debugPrint('🛒 [ADD TO CART] selectedSeller: ${state.selectedSeller?.tenGianHang} (${state.selectedSeller?.maGianHang})');
     
     if (state.maNguyenLieu == null || state.maNguyenLieu!.isEmpty) {
-      print('⚠️ Không có mã nguyên liệu');
+      debugPrint('⚠️ Không có mã nguyên liệu');
+      emit(state.copyWith(
+        lastCartActionMessage: 'Thiếu thông tin nguyên liệu.',
+        lastCartActionSuccess: false,
+      ));
       return;
     }
 
-    // Lấy gian hàng được chọn (selectedSeller)
     if (state.selectedSeller == null) {
-      print('⚠️ Chưa chọn gian hàng nào');
+      debugPrint('⚠️ Chưa chọn gian hàng nào');
+      emit(state.copyWith(
+        lastCartActionMessage: 'Vui lòng chọn gian hàng.',
+        lastCartActionSuccess: false,
+      ));
       return;
     }
 
     final maGianHang = state.selectedSeller!.maGianHang;
-    print('🛒 [ADD TO CART] Calling API with maGianHang: $maGianHang');
+    debugPrint('🛒 [ADD TO CART] Calling API with maGianHang: $maGianHang');
+
+    emit(state.copyWith(isAddingToCart: true));
 
     try {
       final cartService = CartApiService();
@@ -215,16 +226,38 @@ class IngredientDetailCubit extends Cubit<IngredientDetailState> {
         // Refresh cart badge
         refreshCartBadge();
         
-        // Update local count (optional)
-        emit(state.copyWith(cartItemCount: state.cartItemCount + 1));
+        emit(state.copyWith(
+          isAddingToCart: false,
+          cartItemCount: state.cartItemCount + 1,
+          lastCartActionMessage: 'Đã thêm vào giỏ hàng.',
+          lastCartActionSuccess: true,
+        ));
         
-        print('✅ Đã thêm vào giỏ hàng: ${state.selectedSeller!.tenGianHang} (${maGianHang})');
+        debugPrint('✅ Đã thêm vào giỏ hàng: ${state.selectedSeller!.tenGianHang} ($maGianHang)');
       } else {
-        print('❌ Thêm vào giỏ hàng thất bại: ${response.message}');
+        emit(state.copyWith(
+          isAddingToCart: false,
+          lastCartActionMessage: response.message ?? 'Thêm vào giỏ hàng thất bại.',
+          lastCartActionSuccess: false,
+        ));
+        debugPrint('❌ Thêm vào giỏ hàng thất bại: ${response.message}');
       }
     } catch (e) {
-      print('❌ Lỗi khi thêm vào giỏ hàng: $e');
+      debugPrint('❌ Lỗi khi thêm vào giỏ hàng: $e');
+      emit(state.copyWith(
+        isAddingToCart: false,
+        lastCartActionMessage: 'Lỗi khi thêm vào giỏ hàng: $e',
+        lastCartActionSuccess: false,
+      ));
     }
+  }
+
+  /// Reset kết quả action giỏ hàng
+  void clearCartActionMessage() {
+    emit(state.copyWith(
+      lastCartActionMessage: null,
+      lastCartActionSuccess: null,
+    ));
   }
 
   /// Update cart item count
