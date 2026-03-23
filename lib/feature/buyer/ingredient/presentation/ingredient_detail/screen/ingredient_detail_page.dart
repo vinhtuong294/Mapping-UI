@@ -50,22 +50,37 @@ class _IngredientDetailView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: BlocBuilder<IngredientDetailCubit, IngredientDetailState>(
-        builder: (context, state) {
-          if (state.isLoading) {
-            return const BuyerLoading(
-              message: 'Đang tải chi tiết nguyên liệu...',
+      body: BlocListener<IngredientDetailCubit, IngredientDetailState>(
+        listenWhen: (previous, current) => current.lastCartActionMessage != null,
+        listener: (context, state) {
+          if (state.lastCartActionMessage != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.lastCartActionMessage!),
+                backgroundColor: state.lastCartActionSuccess == true ? Colors.green : Colors.red,
+                duration: const Duration(seconds: 2),
+              ),
             );
+            context.read<IngredientDetailCubit>().clearCartActionMessage();
           }
-
-          return Stack(
-            children: [
-              _buildScrollableContent(context, state),
-              _buildHeader(context, state),
-              _buildBottomAction(context, state),
-            ],
-          );
         },
+        child: BlocBuilder<IngredientDetailCubit, IngredientDetailState>(
+          builder: (context, state) {
+            if (state.isLoading) {
+              return const BuyerLoading(
+                message: 'Đang tải chi tiết nguyên liệu...',
+              );
+            }
+
+            return Stack(
+              children: [
+                _buildScrollableContent(context, state),
+                _buildHeader(context, state),
+                _buildBottomAction(context, state),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -405,16 +420,39 @@ class _IngredientDetailView extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Tên gian hàng
-                  Text(
-                    seller.tenGianHang,
-                    style: const TextStyle(
-                      fontFamily: 'Roboto',
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1C1C1E),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          seller.tenGianHang,
+                          style: const TextStyle(
+                            fontFamily: 'Roboto',
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1C1C1E),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (!seller.isMoCua)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'ĐÓNG CỬA',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 8,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 4),
                   
@@ -874,6 +912,11 @@ class _IngredientDetailView extends StatelessWidget {
   }
 
   Widget _buildBottomAction(BuildContext context, IngredientDetailState state) {
+    final isOutOfStock = state.selectedSeller != null && !state.selectedSeller!.conHang;
+    final isClosed = state.selectedSeller != null && !state.selectedSeller!.isMoCua;
+    final isDisabled = isOutOfStock || isClosed;
+    final statusText = isClosed ? 'Đóng cửa' : 'Hết hàng';
+
     return Positioned(
       bottom: 0,
       left: 0,
@@ -895,6 +938,7 @@ class _IngredientDetailView extends StatelessWidget {
           child: Row(
             children: [
               GestureDetector(
+                behavior: HitTestBehavior.opaque,
                 onTap: () => context.read<IngredientDetailCubit>().chatWithShop(),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -925,149 +969,153 @@ class _IngredientDetailView extends StatelessWidget {
               const SizedBox(width: 12),
               
               // Quantity controls
-              BlocBuilder<IngredientDetailCubit, IngredientDetailState>(
-                builder: (context, state) {
-                  return Container(
-                    height: 40,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: const Color(0xFFE0E0E0)),
-                      borderRadius: BorderRadius.circular(4),
+              Container(
+                height: 40,
+                decoration: BoxDecoration(
+                  border: Border.all(color: const Color(0xFFE0E0E0)),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Decrease button
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: isDisabled ? null : () => context.read<IngredientDetailCubit>().decreaseQuantity(),
+                      child: Container(
+                        width: 32,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: (state.quantity > 1 && !isDisabled) 
+                              ? const Color(0xFFF5F5F5) 
+                              : const Color(0xFFE0E0E0),
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(4),
+                            bottomLeft: Radius.circular(4),
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.remove,
+                          size: 18,
+                          color: (state.quantity > 1 && !isDisabled) 
+                              ? const Color(0xFF00B40F) 
+                              : const Color(0xFF999999),
+                        ),
+                      ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Decrease button
-                        GestureDetector(
-                          onTap: () => context.read<IngredientDetailCubit>().decreaseQuantity(),
-                          child: Container(
-                            width: 32,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: state.quantity > 1 
-                                  ? const Color(0xFFF5F5F5) 
-                                  : const Color(0xFFE0E0E0),
-                              borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(4),
-                                bottomLeft: Radius.circular(4),
-                              ),
-                            ),
-                            child: Icon(
-                              Icons.remove,
-                              size: 18,
-                              color: state.quantity > 1 
-                                  ? const Color(0xFF00B40F) 
-                                  : const Color(0xFF999999),
-                            ),
+                    
+                    // Quantity display
+                    Container(
+                      width: 40,
+                      height: 40,
+                      color: Colors.white,
+                      child: Center(
+                        child: Text(
+                          '${state.quantity}',
+                          style: TextStyle(
+                            fontFamily: 'Roboto',
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: isDisabled ? Colors.grey : const Color(0xFF000000),
                           ),
                         ),
-                        
-                        // Quantity display
-                        Container(
-                          width: 40,
-                          height: 40,
-                          color: Colors.white,
-                          child: Center(
-                            child: Text(
-                              '${state.quantity}',
-                              style: const TextStyle(
-                                fontFamily: 'Roboto',
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF000000),
-                              ),
-                            ),
-                          ),
-                        ),
-                        
-                        // Increase button
-                        GestureDetector(
-                          onTap: () => context.read<IngredientDetailCubit>().increaseQuantity(),
-                          child: Container(
-                            width: 32,
-                            height: 40,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFF5F5F5),
-                              borderRadius: BorderRadius.only(
-                                topRight: Radius.circular(4),
-                                bottomRight: Radius.circular(4),
-                              ),
-                            ),
-                            child: const Icon(
-                              Icons.add,
-                              size: 18,
-                              color: Color(0xFF00B40F),
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  );
-                },
+                    
+                    // Increase button
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: isDisabled ? null : () => context.read<IngredientDetailCubit>().increaseQuantity(),
+                      child: Container(
+                        width: 32,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: isDisabled ? const Color(0xFFE0E0E0) : const Color(0xFFF5F5F5),
+                          borderRadius: const BorderRadius.only(
+                            topRight: Radius.circular(4),
+                            bottomRight: Radius.circular(4),
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.add,
+                          size: 18,
+                          color: isDisabled ? const Color(0xFF999999) : const Color(0xFF00B40F),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               
               const SizedBox(width: 10),
               // Nút thêm vào giỏ hàng
               Expanded(
-                child: BlocBuilder<IngredientDetailCubit, IngredientDetailState>(
-                  builder: (context, state) {
-                    final isOutOfStock = state.selectedSeller != null && !state.selectedSeller!.conHang;
-                    return GestureDetector(
-                      onTap: isOutOfStock ? null : () => context.read<IngredientDetailCubit>().addToCart(),
-                      child: Container(
-                        height: 40,
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: isOutOfStock ? Colors.grey : const Color(0xFF00B40F),
-                          ),
-                          borderRadius: BorderRadius.circular(4),
-                          color: isOutOfStock ? Colors.grey[200] : null,
+                child: Material(
+                  color: isDisabled ? Colors.grey[200] : Colors.white,
+                  borderRadius: BorderRadius.circular(4),
+                  child: InkWell(
+                    onTap: (isDisabled || state.isAddingToCart) 
+                        ? null 
+                        : () => context.read<IngredientDetailCubit>().addToCart(),
+                    borderRadius: BorderRadius.circular(4),
+                    child: Container(
+                      height: 40,
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: isDisabled ? Colors.grey : const Color(0xFF00B40F),
                         ),
-                        child: Center(
-                          child: Text(
-                            isOutOfStock ? 'Hết hàng' : 'Thêm vào \ngiỏ hàng',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontFamily: 'Roboto',
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: isOutOfStock ? Colors.grey : const Color(0xFF00B40F),
-                              height: 1.1,
-                            ),
-                          ),
-                        ),
+                        borderRadius: BorderRadius.circular(4),
+                        color: Colors.transparent,
                       ),
-                    );
-                  },
+                      child: Center(
+                        child: state.isAddingToCart
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00B40F)),
+                                ),
+                              )
+                            : Text(
+                                isDisabled ? statusText : 'Thêm vào \ngiỏ hàng',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontFamily: 'Roboto',
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: isDisabled ? Colors.grey : const Color(0xFF00B40F),
+                                  height: 1.1,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
               // Nút mua ngay
               Expanded(
-                child: BlocBuilder<IngredientDetailCubit, IngredientDetailState>(
-                  builder: (context, state) {
-                    final isOutOfStock = state.selectedSeller != null && !state.selectedSeller!.conHang;
-                    return GestureDetector(
-                      onTap: isOutOfStock ? null : () => context.read<IngredientDetailCubit>().buyNow(context),
-                      child: Container(
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: isOutOfStock ? Colors.grey : const Color(0xFF2F8000),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Center(
-                          child: Text(
-                            isOutOfStock ? 'Hết hàng' : 'Mua ngay',
-                            style: const TextStyle(
-                              fontFamily: 'Roboto',
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
-                          ),
+                child: Material(
+                  color: isDisabled ? Colors.grey : const Color(0xFF2F8000),
+                  borderRadius: BorderRadius.circular(4),
+                  child: InkWell(
+                    onTap: isDisabled ? null : () => context.read<IngredientDetailCubit>().buyNow(context),
+                    borderRadius: BorderRadius.circular(4),
+                    child: Container(
+                      height: 40,
+                      alignment: Alignment.center,
+                      child: Text(
+                        isDisabled ? statusText : 'Mua ngay',
+                        style: const TextStyle(
+                          fontFamily: 'Roboto',
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
                         ),
                       ),
-                    );
-                  },
+                    ),
+                  ),
                 ),
               ),
             ],

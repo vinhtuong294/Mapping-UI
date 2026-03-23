@@ -101,8 +101,8 @@ class SplashCubit extends Cubit<SplashState> {
       }
       
       // Check user role - cho phép nguoi_mua và nguoi_ban
-      final vaiTro = userData?['vai_tro'] as String?;
-      print('[SPLASH] 👤 User role: $vaiTro');
+      final vaiTro = await getUserRole();
+      print('[SPLASH] 👤 User role (normalized): $vaiTro');
       
       if (vaiTro != 'nguoi_mua' && vaiTro != 'nguoi_ban') {
         print('[SPLASH] ⚠️ Invalid role: $vaiTro (expected: nguoi_mua or nguoi_ban)');

@@ -44,7 +44,7 @@ class IngredientDetailCubit extends Cubit<IngredientDetailState> {
       if (_nguyenLieuService != null) {
         final response = await _nguyenLieuService!.getNguyenLieuDetail(maNguyenLieu);
         
-        final detail = response.detail;
+        final detail = response.data;
         
         // Convert sellers từ API
         final sellers = response.sellers.data.map((seller) {
@@ -58,6 +58,7 @@ class IngredientDetailCubit extends Cubit<IngredientDetailState> {
             imagePath: seller.hinhAnh,
             soLuongBan: seller.soLuongBan,
             unit: seller.donViBan,
+            tinhTrang: seller.tinhTrang,
           );
         }).toList();
         
@@ -79,7 +80,7 @@ class IngredientDetailCubit extends Cubit<IngredientDetailState> {
         emit(state.copyWith(
           maNguyenLieu: detail.maNguyenLieu,
           ingredientName: detail.tenNguyenLieu,
-          ingredientImage: detail.hinhAnhMoiNhat ?? '',
+          ingredientImage: detail.hinhAnh ?? '',
           price: displayPrice,
           unit: displayUnit,
           shopName: detail.tenNhomNguyenLieu,
@@ -185,29 +186,29 @@ class IngredientDetailCubit extends Cubit<IngredientDetailState> {
 
   /// Add to cart
   Future<void> addToCart() async {
-    print('🛒 [ADD TO CART] Starting...');
-    print('🛒 [ADD TO CART] maNguyenLieu: ${state.maNguyenLieu}');
-    print('🛒 [ADD TO CART] selectedSeller: ${state.selectedSeller?.tenGianHang} (${state.selectedSeller?.maGianHang})');
-    
-    if (state.maNguyenLieu == null || state.maNguyenLieu!.isEmpty) {
-      print('⚠️ Không có mã nguyên liệu');
+    final seller = state.selectedSeller;
+    if (seller == null || state.maNguyenLieu == null) return;
+
+    // KIỂM TRA TRẠNG THÁI GIAN HÀNG
+    if (!seller.isMoCua) {
+      emit(state.copyWith(
+        lastCartActionSuccess: false,
+        lastCartActionMessage: 'Gian hàng đang đóng cửa, không thể thêm vào giỏ hàng',
+      ));
+      // Reset status sau 2s
+      Future.delayed(const Duration(seconds: 2), () {
+        if (!isClosed) emit(state.copyWith(lastCartActionSuccess: null, lastCartActionMessage: null));
+      });
       return;
     }
 
-    // Lấy gian hàng được chọn (selectedSeller)
-    if (state.selectedSeller == null) {
-      print('⚠️ Chưa chọn gian hàng nào');
-      return;
-    }
-
-    final maGianHang = state.selectedSeller!.maGianHang;
-    print('🛒 [ADD TO CART] Calling API with maGianHang: $maGianHang');
+    emit(state.copyWith(isAddingToCart: true));
 
     try {
-      final cartService = CartApiService();
-      final response = await cartService.addToCart(
+      final cartApiService = CartApiService();
+      final response = await cartApiService.addToCart(
         maNguyenLieu: state.maNguyenLieu!,
-        maGianHang: maGianHang,
+        maGianHang: seller.maGianHang,
         soLuong: state.quantity.toDouble(),
       );
 
@@ -215,16 +216,39 @@ class IngredientDetailCubit extends Cubit<IngredientDetailState> {
         // Refresh cart badge
         refreshCartBadge();
         
-        // Update local count (optional)
-        emit(state.copyWith(cartItemCount: state.cartItemCount + 1));
-        
-        print('✅ Đã thêm vào giỏ hàng: ${state.selectedSeller!.tenGianHang} (${maGianHang})');
+        emit(state.copyWith(
+          isAddingToCart: false,
+          cartItemCount: state.cartItemCount + state.quantity,
+          lastCartActionSuccess: true,
+          lastCartActionMessage: 'Đã thêm vào giỏ hàng thành công',
+        ));
       } else {
-        print('❌ Thêm vào giỏ hàng thất bại: ${response.message}');
+        throw Exception(response.message ?? 'Không thể thêm vào giỏ hàng');
       }
     } catch (e) {
-      print('❌ Lỗi khi thêm vào giỏ hàng: $e');
+      String errorMsg = e.toString();
+      if (errorMsg.contains('Gian hàng đang đóng cửa')) {
+        errorMsg = 'Gian hàng đang đóng cửa, không thể thêm vào giỏ hàng';
+      }
+      emit(state.copyWith(
+        isAddingToCart: false,
+        lastCartActionSuccess: false,
+        lastCartActionMessage: errorMsg,
+      ));
     }
+
+    // Reset status sau 2s
+    Future.delayed(const Duration(seconds: 2), () {
+      if (!isClosed) emit(state.copyWith(lastCartActionSuccess: null, lastCartActionMessage: null));
+    });
+  }
+
+  /// Reset kết quả action giỏ hàng
+  void clearCartActionMessage() {
+    emit(state.copyWith(
+      lastCartActionMessage: null,
+      lastCartActionSuccess: null,
+    ));
   }
 
   /// Update cart item count

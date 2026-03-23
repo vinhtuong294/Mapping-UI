@@ -1,10 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../../core/widgets/buyer_loading.dart';
-import '../../../../../core/dependency/injection.dart';
-import '../../../../../core/services/auth/auth_service.dart';
-import '../../../../user/presentation/cubit/user_cubit.dart';
-import '../../../../user/presentation/cubit/user_state.dart';
+import '../../../../../core/config/route_name.dart';
+import '../cubit/user_cubit.dart';
+import '../cubit/user_state.dart';
 
 class SellerUserScreen extends StatelessWidget {
   const SellerUserScreen({super.key});
@@ -12,7 +13,7 @@ class SellerUserScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => UserCubit(authService: getIt<AuthService>())..loadUserData(),
+      create: (context) => SellerUserCubit()..loadUserInfo(),
       child: const _SellerUserView(),
     );
   }
@@ -24,17 +25,15 @@ class _SellerUserView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F0F0),
-      body: BlocConsumer<UserCubit, UserState>(
+      backgroundColor: const Color(0xFFF8F9FA),
+      body: BlocConsumer<SellerUserCubit, SellerUserState>(
         listener: (context, state) {
-          if (state.requiresLogin) {
+          if (state.isLoggedOut) {
             Navigator.of(context).pushNamedAndRemoveUntil(
-              '/login',
+              RouteName.login,
               (route) => false,
             );
-            return;
           }
-          
           if (state.errorMessage != null && state.errorMessage!.isNotEmpty) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -45,29 +44,51 @@ class _SellerUserView extends StatelessWidget {
           }
         },
         builder: (context, state) {
-          if (state.isLoading) {
-            return const BuyerLoading(
-              message: 'Đang tải thông tin...',
-            );
+          if (state.isLoading && state.sellerInfo == null) {
+            return const BuyerLoading(message: 'Đang tải thông tin...');
           }
 
-          return Column(
+          final info = state.sellerInfo;
+          if (info == null) {
+            return const Center(child: Text('Không có dữ liệu'));
+          }
+
+          return Stack(
             children: [
-              _buildHeader(context),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      _buildProfileSection(context, state),
-                      const SizedBox(height: 16),
-                      _buildInformationSection(context, state),
-                      const SizedBox(height: 24),
-                      _buildLogoutButton(context),
-                      const SizedBox(height: 100),
-                    ],
+              Column(
+                children: [
+                  _buildHeader(context),
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: () => context.read<SellerUserCubit>().refreshData(),
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Column(
+                          children: [
+                            const SizedBox(height: 16),
+                            _buildShopHeader(context, info),
+                            const SizedBox(height: 16),
+                            _buildProductCountCard(context, info),
+                            const SizedBox(height: 16),
+                            _buildPerformanceCard(context, info),
+                            const SizedBox(height: 16),
+                            _buildInfoSection(context, info),
+                            const SizedBox(height: 24),
+                            _buildLogoutButton(context),
+                            const SizedBox(height: 100),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
+              if (state.isLoading)
+                Container(
+                  color: Colors.black12,
+                  child: const Center(child: CircularProgressIndicator(color: Color(0xFF26CD3A))),
+                ),
             ],
           );
         },
@@ -75,45 +96,356 @@ class _SellerUserView extends StatelessWidget {
     );
   }
 
-  /// Header với back button và title
   Widget _buildHeader(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.only(top: 50, bottom: 16),
+      padding: const EdgeInsets.only(top: 60, bottom: 16),
       decoration: const BoxDecoration(
         color: Colors.white,
       ),
-      child: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            Row(
-              children: [
-                IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.arrow_back, size: 16, color: Colors.black),
-                  padding: const EdgeInsets.only(left: 16, right: 8),
-                ),
-                const Expanded(
-                  child: Text(
-                    'GIAN HÀNG CỦA TÔI',
-                    style: TextStyle(
-                      fontFamily: 'Roboto',
-                      fontWeight: FontWeight.w700,
-                      fontSize: 17,
-                      height: 1.0,
-                      letterSpacing: 0.51,
-                      color: Colors.black,
-                    ),
-                    textAlign: TextAlign.center,
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(Icons.arrow_back, color: Color(0xFF1F2937)),
+          ),
+          const Expanded(
+            child: Text(
+              'GIAN HÀNG CỦA TÔI',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1F2937),
+                letterSpacing: 0.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(width: 48), // Balance for back button
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShopHeader(BuildContext context, SellerInfo info) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8F5E9),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Stack(
+            children: [
+              GestureDetector(
+                onTap: () => _showImageSourceDialog(context),
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 3),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ClipOval(
+                    child: info.avatarUrl.startsWith('http')
+                        ? Image.network(info.avatarUrl, fit: BoxFit.cover)
+                        : Image.asset(
+                            info.avatarUrl, 
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => Container(
+                              color: Colors.grey[300],
+                              child: const Icon(Icons.store, color: Colors.white, size: 40),
+                            ),
+                          ),
                   ),
                 ),
-                const SizedBox(width: 40), // Spacer để căn giữa
+              ),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.check_circle, color: Color(0xFF26CD3A), size: 18),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  info.shopName,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1B5E20),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Text(
+                      '${info.rating.toStringAsFixed(0)} ',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1B5E20),
+                      ),
+                    ),
+                    const Icon(Icons.star, color: Color(0xFFFFB300), size: 16),
+                    const SizedBox(width: 4),
+                    Text(
+                      '(Người bán uy tín)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
-            const Divider(
-              height: 2,
-              thickness: 2,
-              color: Color(0xFFD9D9D9),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProductCountCard(BuildContext context, SellerInfo info) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.inventory_2_outlined, color: Color(0xFF1B5E20), size: 24),
+          const SizedBox(width: 12),
+          Text(
+            '${info.productCount} sản phẩm',
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1F2937),
+            ),
+          ),
+          const Spacer(),
+          TextButton(
+            onPressed: () {},
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Danh mục',
+                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                ),
+                Icon(Icons.chevron_right, color: Colors.grey[400], size: 20),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPerformanceCard(BuildContext context, SellerInfo info) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF388E3C), Color(0xFF2E7D32)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'HIỆU SUẤT BÁN HÀNG',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Colors.white.withOpacity(0.8),
+              letterSpacing: 1,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Đã bán hơn ${info.soldCount} đơn hàng',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const Icon(Icons.trending_up, color: Colors.white54, size: 40),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoSection(BuildContext context, SellerInfo info) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          _buildInfoItem(
+            label: 'HỌ VÀ TÊN',
+            value: info.fullName,
+            onEdit: () => _showEditDialog(context, 'Họ và tên', info.fullName, (val) {
+              context.read<SellerUserCubit>().updateProfile(fullName: val);
+            }),
+          ),
+          const Divider(height: 24),
+          _buildInfoItem(
+            label: 'CHỢ',
+            value: info.marketName,
+            // Không cho chỉnh sửa theo yêu cầu
+          ),
+          const Divider(height: 24),
+          _buildInfoItem(
+            label: 'SỐ LÔ (MÃ GIAN HÀNG)',
+            value: info.stallNumber,
+            // Không cho chỉnh sửa theo yêu cầu
+          ),
+          const Divider(height: 24),
+          _buildInfoItem(
+            label: 'SỐ TÀI KHOẢN',
+            value: info.accountNumber,
+            onEdit: () => _showEditDialog(context, 'Số tài khoản', info.accountNumber, (val) {
+              context.read<SellerUserCubit>().updateProfile(bankAccount: val);
+            }),
+          ),
+          const Divider(height: 24),
+          _buildInfoItem(
+            label: 'NGÂN HÀNG',
+            value: info.bankName,
+            onEdit: () => _showEditDialog(context, 'Ngân hàng', info.bankName, (val) {
+              context.read<SellerUserCubit>().updateProfile(bankName: val);
+            }),
+          ),
+          const Divider(height: 24),
+          _buildInfoItem(
+            label: 'SỐ ĐIỆN THOẠI',
+            value: info.phoneNumber,
+            onEdit: () => _showEditDialog(context, 'Số điện thoại', info.phoneNumber, (val) {
+              context.read<SellerUserCubit>().updateProfile(phone: val);
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoItem({
+    required String label,
+    required String value,
+    bool isNavigation = false,
+    VoidCallback? onEdit,
+  }) {
+    return InkWell(
+      onTap: onEdit,
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[500],
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1F2937),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (isNavigation)
+            Icon(Icons.chevron_right, color: Colors.grey[400])
+          else if (onEdit != null)
+            Icon(Icons.edit, color: Colors.grey[300], size: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLogoutButton(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      child: OutlinedButton(
+        onPressed: () => context.read<SellerUserCubit>().logout(),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          side: const BorderSide(color: Color(0xFFFFEBEE)),
+          backgroundColor: const Color(0xFFFFFBFA),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.logout, color: Colors.red, size: 20),
+            SizedBox(width: 8),
+            Text(
+              'Đăng Xuất',
+              style: TextStyle(
+                color: Colors.red,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
             ),
           ],
         ),
@@ -121,409 +453,70 @@ class _SellerUserView extends StatelessWidget {
     );
   }
 
-  /// Profile Section với avatar, tên, rating, stats
-  Widget _buildProfileSection(BuildContext context, UserState state) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 7),
-      child: Column(
-        children: [
-          // Main profile card với image và info
-          Container(
-            height: 179,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(5),
-              color: Colors.grey[300], // Fallback color
-            ),
-            child: Stack(
-              children: [
-                // Background image placeholder
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(5),
-                  child: Image.asset(
-                    'assets/img/seller_shop_bg.png',
-                    width: double.infinity,
-                    height: 179,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: double.infinity,
-                        height: 179,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              Colors.green[300]!,
-                              Colors.green[500]!,
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                // Category badges
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(5),
-                      border: Border.all(color: Colors.black, width: 0.3),
-                    ),
-                    child: const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Gia vị',
-                          style: TextStyle(
-                            fontFamily: 'Roboto',
-                            fontWeight: FontWeight.w400,
-                            fontSize: 12,
-                            height: 1.83,
-                            color: Colors.black,
-                          ),
-                        ),
-                        Text(
-                          'Thịt heo',
-                          style: TextStyle(
-                            fontFamily: 'Roboto',
-                            fontWeight: FontWeight.w400,
-                            fontSize: 12,
-                            height: 1.83,
-                            color: Colors.black,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                // Avatar circle
-                Positioned(
-                  bottom: 8,
-                  left: 7,
-                  child: Container(
-                    width: 48,
-                    height: 49,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF8F959E),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'N',
-                        style: TextStyle(
-                          fontFamily: 'Roboto',
-                          fontWeight: FontWeight.w700,
-                          fontSize: 30,
-                          height: 0.73,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                // Name and rating
-                Positioned(
-                  bottom: 8,
-                  left: 69,
-                  child: Row(
-                    children: [
-                      const Text(
-                        'Cô Nhi',
-                        style: TextStyle(
-                          fontFamily: 'Roboto',
-                          fontWeight: FontWeight.w700,
-                          fontSize: 20,
-                          height: 1.1,
-                          color: Color(0xFF202020),
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Text(
-                        '5',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w400,
-                          fontSize: 18,
-                          height: 0.89,
-                          color: Color(0xFF0C0D0D),
-                        ),
-                      ),
-                      const SizedBox(width: 2),
-                      Image.asset(
-                        'assets/img/star.png',
-                        width: 21,
-                        height: 19,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Icon(
-                            Icons.star,
-                            size: 19,
-                            color: Colors.amber,
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+  void _showEditDialog(BuildContext context, String title, String initialValue, Function(String) onSave) {
+    final controller = TextEditingController(text: initialValue == 'Chưa cập nhật' ? '' : initialValue);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Chỉnh sửa $title'),
+        content: TextField(
+          controller: controller,
+          decoration: InputDecoration(
+            hintText: 'Nhập $title mới',
+            border: const OutlineInputBorder(),
           ),
-          const SizedBox(height: 8),
-          // Stats row
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(5),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  '30 sản phẩm',
-                  style: TextStyle(
-                    fontFamily: 'Roboto',
-                    fontWeight: FontWeight.w400,
-                    fontSize: 16,
-                    height: 1.375,
-                    color: Color(0xFF202020),
-                  ),
-                ),
-                Row(
-                  children: [
-                    const Text(
-                      'Danh mục',
-                      style: TextStyle(
-                        fontFamily: 'Roboto',
-                        fontWeight: FontWeight.w400,
-                        fontSize: 16,
-                        height: 1.375,
-                        color: Color(0xFF202020),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Icon(
-                      Icons.chevron_right,
-                      size: 20,
-                      color: Colors.black.withValues(alpha: 0.7),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          // Orders stat
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(5),
-            ),
-            child: const Row(
-              children: [
-                Text(
-                  'Đã bán hơn 120 đơn hàng',
-                  style: TextStyle(
-                    fontFamily: 'Roboto',
-                    fontWeight: FontWeight.w400,
-                    fontSize: 16,
-                    height: 1.375,
-                    color: Color(0xFF202020),
-                  ),
-                ),
-              ],
-            ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
+          ElevatedButton(
+            onPressed: () {
+              onSave(controller.text);
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF26CD3A)),
+            child: const Text('Lưu', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
   }
 
-  /// Information Section với các thông tin và edit icons
-  Widget _buildInformationSection(BuildContext context, UserState state) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 7),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Tên người dùng
-          _buildInfoRow(
-            context,
-            label: state.userName,
-            showEdit: false,
-            showArrow: false,
-          ),
-          const Divider(height: 32),
-          // Chợ
-          _buildInfoRow(
-            context,
-            label: 'Chợ: Bắc Mỹ An',
-            showEdit: true,
-            showArrow: false,
-            onEdit: () {
-              // TODO: Edit market
-            },
-          ),
-          const Divider(height: 32),
-          // Số lô
-          _buildInfoRow(
-            context,
-            label: 'Số lô: STK12',
-            showEdit: false,
-            showArrow: true,
-            onTap: () {
-              // TODO: Navigate to lot details
-            },
-          ),
-          const Divider(height: 32),
-          // Số tài khoản
-          _buildInfoRow(
-            context,
-            label: 'Số tài khoản: 0397521031',
-            showEdit: true,
-            showArrow: false,
-            onEdit: () {
-              // TODO: Edit account number
-            },
-          ),
-          const Divider(height: 32),
-          // Ngân hàng
-          _buildInfoRow(
-            context,
-            label: 'Ngân hàng: AB BANK',
-            showEdit: true,
-            showArrow: false,
-            onEdit: () {
-              // TODO: Edit bank
-            },
-          ),
-          const Divider(height: 32),
-          // Số điện thoại
-          _buildInfoRow(
-            context,
-            label: 'Số điện thoại: 039821031',
-            showEdit: true,
-            showArrow: false,
-            onEdit: () {
-              // TODO: Edit phone
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(
-    BuildContext context, {
-    required String label,
-    required bool showEdit,
-    required bool showArrow,
-    VoidCallback? onEdit,
-    VoidCallback? onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontFamily: 'Roboto',
-                fontWeight: FontWeight.w700,
-                fontSize: 17,
-                height: 1.76,
-                letterSpacing: -0.21,
-                color: Color(0xFF202020),
-              ),
+  void _showImageSourceDialog(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Chụp ảnh'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(context, ImageSource.camera);
+              },
             ),
-          ),
-          if (showEdit)
-            GestureDetector(
-              onTap: onEdit,
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                child: const Icon(
-                  Icons.edit,
-                  size: 18,
-                  color: Color(0xFF1C1B1F),
-                ),
-              ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Chọn từ thư viện'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(context, ImageSource.gallery);
+              },
             ),
-          if (showArrow)
-            const Icon(
-              Icons.arrow_forward_ios,
-              size: 9,
-              color: Color(0xFF1C1B1F),
-            ),
-        ],
-      ),
-    );
-  }
-
-  /// Logout Button
-  Widget _buildLogoutButton(BuildContext context) {
-    return Center(
-      child: GestureDetector(
-        onTap: () => _showLogoutDialog(context),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-          child: const Text(
-            'Đăng Xuất',
-            style: TextStyle(
-              fontFamily: 'Roboto',
-              fontWeight: FontWeight.w700,
-              fontSize: 17,
-              height: 1.29,
-              letterSpacing: -0.18,
-              color: Color(0xFF0F2F63),
-            ),
-          ),
+          ],
         ),
       ),
     );
   }
 
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Đăng xuất'),
-        content: const Text('Bạn có chắc chắn muốn đăng xuất?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Hủy'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(dialogContext);
-              await context.read<UserCubit>().logout();
-              if (context.mounted) {
-                Navigator.of(context).pushNamedAndRemoveUntil(
-                  '/login',
-                  (route) => false,
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Đăng xuất'),
-          ),
-        ],
-      ),
-    );
+  Future<void> _pickImage(BuildContext context, ImageSource source) async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: source);
+    if (pickedFile != null) {
+      if (context.mounted) {
+        context.read<SellerUserCubit>().updateShopAvatar(File(pickedFile.path));
+      }
+    }
   }
 }

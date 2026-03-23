@@ -51,9 +51,9 @@ class MonAnDetailModel {
     final detail = json['detail'] as Map<String, dynamic>? ?? json['data'] as Map<String, dynamic>? ?? json;
     
     return MonAnDetailModel(
-      maMonAn: (detail['ma_mon_an'] ?? detail['id'] ?? '').toString(),
-      tenMonAn: (detail['ten_mon_an'] ?? detail['market_name'] ?? '').toString(),
-      hinhAnh: _parseImageUrl(detail['hinh_anh']),
+      maMonAn: (detail['ma_mon_an'] ?? detail['id'] ?? detail['dish_id'] ?? '').toString(),
+      tenMonAn: (detail['ten_mon_an'] ?? detail['dish_name'] ?? detail['market_name'] ?? detail['name'] ?? '').toString(),
+      hinhAnh: _parseImageUrl(detail['hinh_anh_moi_nhat'] ?? detail['hinh_anh'] ?? detail['image'] ?? detail['img']),
       khoangThoiGian: (detail['khoang_thoi_gian'] as num?)?.toInt(),
       doKho: detail['do_kho']?.toString(),
       khauPhanTieuChuan: (detail['khau_phan_tieu_chuan'] as num?)?.toInt(),
@@ -67,12 +67,16 @@ class MonAnDetailModel {
       caloriesTongTheoKhauPhan: (detail['calories_tong_theo_khau_phan'] as num?)?.toInt(),
       soDanhMuc: (detail['so_danh_muc'] as num?)?.toInt(),
       soNguyenLieu: (detail['so_nguyen_lieu'] as num?)?.toInt(),
-      danhMuc: (detail['danh_muc'] as List<dynamic>?)
-          ?.map((item) => DanhMucDetail.fromJson(item as Map<String, dynamic>))
-          .toList(),
-      nguyenLieu: (detail['nguyen_lieu'] as List<dynamic>?)
-          ?.map((item) => NguyenLieuDetail.fromJson(item as Map<String, dynamic>))
-          .toList(),
+      danhMuc: detail['danh_muc'] is List 
+          ? (detail['danh_muc'] as List<dynamic>)
+              .map((item) => DanhMucDetail.fromJson(item as Map<String, dynamic>))
+              .toList()
+          : [],
+      nguyenLieu: detail['nguyen_lieu'] is List
+          ? (detail['nguyen_lieu'] as List<dynamic>)
+              .map((item) => NguyenLieuDetail.fromJson(item as Map<String, dynamic>))
+              .toList()
+          : [],
     );
   }
 
@@ -154,11 +158,11 @@ class NguyenLieuDetail {
 
   factory NguyenLieuDetail.fromJson(Map<String, dynamic> json) {
     return NguyenLieuDetail(
-      maNguyenLieu: json['ma_nguyen_lieu'] as String?,
-      tenNguyenLieu: json['ten_nguyen_lieu'] as String?,
-      donViGoc: json['don_vi_goc'] as String?,
-      dinhLuong: json['dinh_luong'] as String?,
-      hinhAnh: _parseImageUrl(json['hinh_anh']),
+      maNguyenLieu: (json['ma_nguyen_lieu'] ?? json['ingredient_id'] ?? json['id'] ?? '').toString(),
+      tenNguyenLieu: (json['ten_nguyen_lieu'] ?? json['ingredient_name'] ?? json['name'] ?? '').toString(),
+      donViGoc: json['don_vi_goc']?.toString() ?? json['unit']?.toString(),
+      dinhLuong: json['dinh_luong']?.toString() ?? json['quantity']?.toString(),
+      hinhAnh: _parseImageUrl(json['hinh_anh_moi_nhat'] ?? json['hinh_anh'] ?? json['image'] ?? json['img']),
       gia: _parseDouble(json['gia_cuoi']) ?? _parseDouble(json['gia_goc']) ?? _parseDouble(json['gia']),
       donViBan: json['don_vi_ban'] as String?,
       soLuongBan: _parseDouble(json['so_luong_ban']),
@@ -198,18 +202,24 @@ class GianHangInfo {
   final String? maGianHang;
   final String? tenGianHang;
   final String? maCho;
+  final String? tinhTrang;
 
   GianHangInfo({
     this.maGianHang,
     this.tenGianHang,
     this.maCho,
+    this.tinhTrang,
   });
+
+  /// Kiểm tra gian hàng có đang mở cửa không
+  bool get isMoCua => tinhTrang == 'dang_mo_cua' || tinhTrang == null;
 
   factory GianHangInfo.fromJson(Map<String, dynamic> json) {
     return GianHangInfo(
       maGianHang: json['ma_gian_hang'] as String?,
       tenGianHang: json['ten_gian_hang'] as String?,
       maCho: json['ma_cho'] as String?,
+      tinhTrang: json['tinh_trang'] as String?,
     );
   }
 
@@ -218,6 +228,7 @@ class GianHangInfo {
       'ma_gian_hang': maGianHang,
       'ten_gian_hang': tenGianHang,
       'ma_cho': maCho,
+      'tinh_trang': tinhTrang,
     };
   }
 }

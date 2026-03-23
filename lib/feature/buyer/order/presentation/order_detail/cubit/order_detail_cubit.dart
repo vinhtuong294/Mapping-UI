@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../../../core/config/app_config.dart';
 import '../../../../../../core/utils/app_logger.dart';
 import '../../../../../../core/services/order_service.dart';
+import '../../../../../../core/services/nguyen_lieu_service.dart';
+import '../../../../../../core/dependency/injection.dart';
 
 part 'order_detail_state.dart';
 
@@ -28,15 +30,40 @@ class OrderDetailCubit extends Cubit<OrderDetailState> {
 
     try {
       final response = await _orderService.getOrderDetail(orderId);
+      var currentData = response.data;
+
+      // Enrich images for items if missing
+      try {
+        final nguyenLieuService = getDependency<NguyenLieuService>();
+        final enrichedItems = await Future.wait(currentData.items.map((item) async {
+          if (item.nguyenLieu != null && (item.nguyenLieu!.hinhAnh == null || item.nguyenLieu!.hinhAnh!.isEmpty)) {
+            try {
+              final detail = await nguyenLieuService.getNguyenLieuDetail(item.maNguyenLieu);
+              if (detail.data.hinhAnh != null && detail.data.hinhAnh!.isNotEmpty) {
+                return item.copyWith(
+                  nguyenLieu: item.nguyenLieu!.copyWith(hinhAnh: detail.data.hinhAnh),
+                );
+              }
+            } catch (e) {
+              AppLogger.warning('⚠️ [ORDER DETAIL] Could not fetch image for ${item.maNguyenLieu}: $e');
+            }
+          }
+          return item;
+        }));
+        
+        currentData = currentData.copyWith(items: enrichedItems);
+      } catch (e) {
+        AppLogger.error('❌ [ORDER DETAIL] Error enriching images: $e');
+      }
 
       // Check if cubit is still open before continuing
       if (isClosed) return;
 
       if (AppConfig.enableApiLogging) {
-        AppLogger.info('Order detail loaded successfully');
+        AppLogger.info('Order detail loaded successfully with enriched images');
       }
 
-      emit(OrderDetailLoaded(orderDetail: response.data));
+      emit(OrderDetailLoaded(orderDetail: currentData));
     } catch (e) {
       if (AppConfig.enableApiLogging) {
         AppLogger.error('Failed to load order detail: $e');

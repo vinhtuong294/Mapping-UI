@@ -6,6 +6,8 @@ import '../cubit/productdetail_state.dart';
 import '../../../../../core/widgets/ingredient_list_item.dart';
 import '../../../../../core/widgets/ingredient_grid_card.dart';
 import '../../../../../core/widgets/shared_bottom_navigation.dart';
+import '../../../../../core/widgets/cart_icon_with_badge.dart';
+import '../../../../../core/config/route_name.dart';
 
 class ProductDetailScreen extends StatelessWidget {
   final String? maMonAn; // Mã món ăn từ ProductScreen
@@ -49,6 +51,30 @@ class _ProductDetailViewState extends State<_ProductDetailView> {
           if (state.isLoading) {
             return const BuyerLoading(
               message: 'Đang tải chi tiết món ăn...',
+            );
+          }
+
+          if (state.errorMessage != null) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text(
+                    state.errorMessage!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      context.read<ProductDetailCubit>().loadProductDetails(state.maMonAn ?? '');
+                    },
+                    child: const Text('Thử lại'),
+                  ),
+                ],
+              ),
             );
           }
 
@@ -119,11 +145,12 @@ class _ProductDetailViewState extends State<_ProductDetailView> {
                 ),
               ),
 
-              // Icon 3 chấm dọc bên phải
-              const Icon(
-                Icons.more_vert,
-                size: 22,
-                color: Color(0xFF2F8000), // màu xanh bạn dùng trong app
+              // Icon giỏ hàng bên phải
+              CartIconWithBadge(
+                itemCount: state.cartItemCount,
+                onTap: () {
+                  Navigator.pushNamed(context, RouteName.cart);
+                },
               ),
             ],
           ),
@@ -162,14 +189,14 @@ class _ProductDetailViewState extends State<_ProductDetailView> {
             width: double.infinity,
             height: 308,
             color: Colors.grey[300],
-            child: const Icon(Icons.image, size: 80),
+            child: const Icon(Icons.image_not_supported, size: 80, color: Colors.grey),
           );
         },
       );
     } else {
       // Nếu là asset, dùng Image.asset()
       return Image.asset(
-        state.productImage,
+        state.productImage.isNotEmpty ? state.productImage : 'assets/img/mon_an_icon.png',
         width: double.infinity,
         height: 308,
         fit: BoxFit.cover,
@@ -178,7 +205,7 @@ class _ProductDetailViewState extends State<_ProductDetailView> {
             width: double.infinity,
             height: 308,
             color: Colors.grey[300],
-            child: const Icon(Icons.image, size: 80),
+            child: const Icon(Icons.image_not_supported, size: 80, color: Colors.grey),
           );
         },
       );
@@ -674,12 +701,17 @@ class _ProductDetailViewState extends State<_ProductDetailView> {
             itemCount: state.nguyenLieu!.length,
             itemBuilder: (context, index) {
               final nl = state.nguyenLieu![index];
+              final gianHang = nl.gianHang?.isNotEmpty == true ? nl.gianHang!.first : null;
+              final isShopOpen = gianHang?.isMoCua ?? true;
+
               return IngredientGridCard(
                 name: nl.ten,
                 price: nl.giaDisplay ?? (nl.dinhLuong.isNotEmpty && nl.donVi != null
                     ? '${nl.dinhLuong} ${nl.donVi}'
                     : null),
                 imagePath: nl.hinhAnh,
+                shopName: gianHang?.tenGianHang,
+                isShopOpen: isShopOpen,
                 onTap: () {
                   // Navigate to ingredient detail
                   if (nl.maNguyenLieu != null) {
@@ -693,9 +725,19 @@ class _ProductDetailViewState extends State<_ProductDetailView> {
                     );
                   }
                 },
-                onAddToCart: () {
-                  // TODO: Add to cart
-                  debugPrint('Thêm vào giỏ: ${nl.ten}');
+                onAddToCart: () async {
+                  final success = await context.read<ProductDetailCubit>().addToCartIngredient(nl);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(success 
+                          ? 'Đã thêm ${nl.ten} vào giỏ hàng' 
+                          : 'Không thể thêm ${nl.ten} vào giỏ hàng'),
+                        backgroundColor: success ? Colors.green : Colors.red,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  }
                 },
                 onBuyNow: () {
                   // Navigate to ingredient detail for buying

@@ -5,6 +5,7 @@ import 'package:dngo/core/services/mon_an_service.dart';
 import 'package:dngo/core/services/auth/auth_service.dart';
 import 'package:dngo/core/services/khu_vuc_service.dart';
 import 'package:dngo/core/services/cho_service.dart';
+import 'package:dngo/core/config/app_config.dart';
 import 'package:dngo/core/error/exceptions.dart';
 import 'package:dngo/core/models/mon_an_model.dart';
 import 'product_state.dart';
@@ -138,21 +139,39 @@ class ProductCubit extends Cubit<ProductState> {
     
     for (final monAn in monAnList) {
       try {
+        // Ưu tiên dùng ảnh từ monAn nếu có (list API)
+        if (monAn.hinhAnh != null && monAn.hinhAnh!.isNotEmpty) {
+           result.add(MonAnWithImage(
+            monAn: monAn,
+            imageUrl: monAn.hinhAnh!.startsWith('http') 
+                ? monAn.hinhAnh! 
+                : '${AppConfig.imageBaseUrl}${monAn.hinhAnh!.startsWith('/') ? '' : '/'}${monAn.hinhAnh}',
+            cookTime: 40,
+            difficulty: 'Dễ',
+            servings: 4,
+          ));
+          continue;
+        }
+
         // Gọi API detail để lấy ảnh và thông tin chi tiết
         final detail = await _monAnService.getMonAnDetail(monAn.maMonAn);
         result.add(MonAnWithImage(
           monAn: monAn,
-          imageUrl: detail.hinhAnh,
+          imageUrl: detail.hinhAnh.isNotEmpty 
+              ? (detail.hinhAnh.startsWith('http') ? detail.hinhAnh : '${AppConfig.imageBaseUrl}${detail.hinhAnh.startsWith('/') ? '' : '/'}${detail.hinhAnh}')
+              : 'assets/img/mon_an_icon.png',
           cookTime: detail.khoangThoiGian ?? 40, // khoang_thoi_gian
           difficulty: detail.doKho ?? 'Dễ', // do_kho
           servings: detail.khauPhanTieuChuan ?? 4, // khau_phan_tieu_chuan
         ));
       } catch (e) {
-        // Nếu lỗi, dùng giá trị mặc định
+        // Nếu lỗi, dùng giá trị mặc định và fallback ảnh từ monAn
         print('Lỗi khi lấy chi tiết cho món ${monAn.maMonAn}: $e');
         result.add(MonAnWithImage(
           monAn: monAn,
-          imageUrl: '',
+          imageUrl: monAn.hinhAnh != null && monAn.hinhAnh!.isNotEmpty
+              ? (monAn.hinhAnh!.startsWith('http') ? monAn.hinhAnh! : '${AppConfig.imageBaseUrl}${monAn.hinhAnh!.startsWith('/') ? '' : '/'}${monAn.hinhAnh}')
+              : 'assets/img/mon_an_icon.png',
           cookTime: 40,
           difficulty: 'Dễ',
           servings: 4,

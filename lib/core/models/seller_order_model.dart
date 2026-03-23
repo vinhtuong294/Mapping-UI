@@ -23,35 +23,46 @@ class SellerOrderModel {
   });
 
   factory SellerOrderModel.fromJson(Map<String, dynamic> json) {
-    // Parse địa chỉ giao hàng từ JSON string
+    // Parse địa chỉ giao hàng từ JSON string hoặc dùng N/A
     DeliveryAddress? address;
-    if (json['dia_chi_giao_hang'] != null) {
+    final rawAddress = json['delivery_address'] ?? json['dia_chi_giao_hang'];
+    if (rawAddress != null && rawAddress != 'N/A') {
       try {
-        final addressJson = jsonDecode(json['dia_chi_giao_hang'] as String);
+        final addressJson = jsonDecode(rawAddress.toString());
         address = DeliveryAddress.fromJson(addressJson);
       } catch (_) {
         address = null;
       }
     }
 
+    // Parse chi tiết đơn hàng (nguyen_lieu)
+    final itemsList = (json['nguyen_lieu'] ?? json['chi_tiet_don_hang']) as List<dynamic>?;
+    final items = itemsList?.map((e) => OrderDetailItem.fromJson(e as Map<String, dynamic>)).toList() ?? [];
+
+    // Tính tổng tiền nếu không có sẵn
+    double total = (json['tong_tien'] as num?)?.toDouble() ?? 
+                   (json['total_price'] as num?)?.toDouble() ?? 
+                   items.fold(0.0, (sum, item) => sum + item.thanhTien);
+
     return SellerOrderModel(
-      maDonHang: json['ma_don_hang'] as String,
-      tongTien: (json['tong_tien'] as num).toDouble(),
-      tinhTrangDonHang: json['tinh_trang_don_hang'] as String,
-      thoiGianGiaoHang: json['thoi_gian_giao_hang'] != null
-          ? DateTime.tryParse(json['thoi_gian_giao_hang'] as String)
-          : null,
+      maDonHang: (json['order_id'] ?? json['ma_don_hang'] ?? '').toString(),
+      tongTien: total,
+      tinhTrangDonHang: (json['order_status'] ?? json['tinh_trang_don_hang'] ?? '').toString(),
+      thoiGianGiaoHang: json['delivery_time'] != null
+          ? DateTime.tryParse(json['delivery_time'] as String)
+          : (json['thoi_gian_giao_hang'] != null
+              ? DateTime.tryParse(json['thoi_gian_giao_hang'] as String)
+              : null),
       diaChiGiaoHang: address,
       nguoiMua: json['nguoi_mua'] != null
-          ? BuyerInfo.fromJson(json['nguoi_mua'] as Map<String, dynamic>)
+          ? (json['nguoi_mua'] is String 
+              ? BuyerInfo(maNguoiMua: '', tenNguoiDung: json['nguoi_mua'] as String, sdt: '')
+              : BuyerInfo.fromJson(json['nguoi_mua'] as Map<String, dynamic>))
           : null,
       thanhToan: json['thanh_toan'] != null
           ? PaymentInfo.fromJson(json['thanh_toan'] as Map<String, dynamic>)
           : null,
-      chiTietDonHang: (json['chi_tiet_don_hang'] as List<dynamic>?)
-              ?.map((e) => OrderDetailItem.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          [],
+      chiTietDonHang: items,
     );
   }
 }
@@ -157,6 +168,7 @@ class OrderDetailItem {
   final String? maMonAn;
   final String tenNguyenLieu;
   final String? donVi;
+  final String? hinhAnh;
 
   OrderDetailItem({
     required this.maNguyenLieu,
@@ -167,32 +179,51 @@ class OrderDetailItem {
     this.maMonAn,
     required this.tenNguyenLieu,
     this.donVi,
+    this.hinhAnh,
   });
 
   factory OrderDetailItem.fromJson(Map<String, dynamic> json) {
-    // Parse tên nguyên liệu từ san_pham_ban
-    String tenNguyenLieu = json['ma_nguyen_lieu'] as String? ?? '';
-    String? donVi;
+    // Parse mapping cho new API format (nguyen_lieu list)
+    final maNguyenLieu = (json['ingredient_id'] ?? json['ma_nguyen_lieu'] ?? '').toString();
+    final tenNL = (json['ingredient_name'] ?? '').toString();
+    final soLuong = (json['quantity'] as num?)?.toInt() ?? (json['so_luong'] as num?)?.toInt() ?? 0;
+    final gia = (json['price'] as num?)?.toDouble() ?? (json['gia_cuoi'] as num?)?.toDouble() ?? 0;
+    
+    // Parse từ san_pham_ban nếu có (old format)
+    String finalTenNL = tenNL.isNotEmpty ? tenNL : maNguyenLieu;
+    String? finalDonVi;
+    String? finalHinhAnh;
     
     final sanPhamBan = json['san_pham_ban'] as Map<String, dynamic>?;
     if (sanPhamBan != null) {
       final nguyenLieu = sanPhamBan['nguyen_lieu'] as Map<String, dynamic>?;
       if (nguyenLieu != null) {
-        tenNguyenLieu = nguyenLieu['ten_nguyen_lieu'] as String? ?? tenNguyenLieu;
-        donVi = nguyenLieu['don_vi'] as String?;
+        finalTenNL = nguyenLieu['ten_nguyen_lieu'] as String? ?? finalTenNL;
+        finalDonVi = nguyenLieu['don_vi'] as String?;
+        finalHinhAnh = _parseImageUrl(nguyenLieu['hinh_anh'] ?? nguyenLieu['image']);
       }
     }
 
     return OrderDetailItem(
-      maNguyenLieu: json['ma_nguyen_lieu'] as String? ?? '',
-      maGianHang: json['ma_gian_hang'] as String? ?? '',
-      soLuong: (json['so_luong'] as num?)?.toInt() ?? 0,
-      giaCuoi: (json['gia_cuoi'] as num?)?.toDouble() ?? 0,
-      thanhTien: (json['thanh_tien'] as num?)?.toDouble() ?? 0,
+      maNguyenLieu: maNguyenLieu,
+      maGianHang: (json['ma_gian_hang'] ?? '').toString(),
+      soLuong: soLuong,
+      giaCuoi: gia,
+      thanhTien: (json['thanh_tien'] as num?)?.toDouble() ?? (soLuong * gia),
       maMonAn: json['ma_mon_an'] as String?,
-      tenNguyenLieu: tenNguyenLieu,
-      donVi: donVi,
+      tenNguyenLieu: finalTenNL,
+      donVi: finalDonVi,
+      hinhAnh: finalHinhAnh,
     );
+  }
+
+  static String? _parseImageUrl(dynamic value) {
+    if (value == null || value.toString().isEmpty) return null;
+    final path = value.toString();
+    if (path.startsWith('http')) return path;
+    
+    final baseUrl = 'http://207.180.233.84:8000'; // Standard base URL for images
+    return '$baseUrl${path.startsWith('/') ? '' : '/'}$path';
   }
 }
 
@@ -285,16 +316,24 @@ class SellerOrdersResponse {
   });
 
   factory SellerOrdersResponse.fromJson(Map<String, dynamic> json) {
-    final data = json['data'] as Map<String, dynamic>?;
+    final rawData = json['data'];
+    final meta = json['meta'] as Map<String, dynamic>?;
+    
+    List<SellerOrderModel> items = [];
+    if (rawData is List) {
+      items = rawData.map((e) => SellerOrderModel.fromJson(e as Map<String, dynamic>)).toList();
+    } else if (rawData is Map && rawData['items'] is List) {
+      items = (rawData['items'] as List).map((e) => SellerOrderModel.fromJson(e as Map<String, dynamic>)).toList();
+    }
+
     return SellerOrdersResponse(
       success: json['success'] as bool? ?? false,
-      items: (data?['items'] as List<dynamic>?)
-              ?.map((e) => SellerOrderModel.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          [],
-      pagination: data?['pagination'] != null
-          ? PaginationInfo.fromJson(data!['pagination'] as Map<String, dynamic>)
-          : PaginationInfo(page: 1, limit: 10, total: 0, totalPages: 0),
+      items: items,
+      pagination: meta != null
+          ? PaginationInfo.fromMetaJson(meta)
+          : (rawData is Map && rawData['pagination'] != null 
+              ? PaginationInfo.fromJson(rawData['pagination'] as Map<String, dynamic>)
+              : PaginationInfo(page: 1, limit: 10, total: items.length, totalPages: 1)),
     );
   }
 }
@@ -319,6 +358,15 @@ class PaginationInfo {
       limit: (json['limit'] as num?)?.toInt() ?? 10,
       total: (json['total'] as num?)?.toInt() ?? 0,
       totalPages: (json['totalPages'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  factory PaginationInfo.fromMetaJson(Map<String, dynamic> json) {
+    return PaginationInfo(
+      page: (json['page'] as num?)?.toInt() ?? 1,
+      limit: (json['limit'] as num?)?.toInt() ?? 10,
+      total: (json['total'] as num?)?.toInt() ?? 0,
+      totalPages: (json['total_pages'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -367,9 +415,9 @@ class ConfirmOrderResponse {
     return ConfirmOrderResponse(
       success: json['success'] as bool? ?? false,
       message: json['message'] as String? ?? '',
-      maDonHang: data?['ma_don_hang'] as String?,
-      tinhTrangDonHang: data?['tinh_trang_don_hang'] as String?,
-      tongTien: (data?['tong_tien'] as num?)?.toDouble(),
+      maDonHang: (data?['order_id'] ?? data?['ma_don_hang'])?.toString(),
+      tinhTrangDonHang: (data?['order_status'] ?? data?['tinh_trang_don_hang'])?.toString(),
+      tongTien: (data?['total_price'] as num?)?.toDouble() ?? (data?['tong_tien'] as num?)?.toDouble(),
       shipperAssigned: data?['shipper_assigned'] != null
           ? ShipperAssigned.fromJson(data!['shipper_assigned'] as Map<String, dynamic>)
           : null,
@@ -446,9 +494,9 @@ class RejectOrderResponse {
     return RejectOrderResponse(
       success: json['success'] as bool? ?? false,
       message: json['message'] as String? ?? '',
-      maDonHang: data?['ma_don_hang'] as String?,
-      tinhTrangDonHang: data?['tinh_trang_don_hang'] as String?,
-      tongTien: (data?['tong_tien'] as num?)?.toDouble(),
+      maDonHang: (data?['order_id'] ?? data?['ma_don_hang'])?.toString(),
+      tinhTrangDonHang: (data?['order_status'] ?? data?['tinh_trang_don_hang'])?.toString(),
+      tongTien: (data?['total_price'] as num?)?.toDouble() ?? (data?['tong_tien'] as num?)?.toDouble(),
       lyDoHuy: data?['ly_do_huy'] as String? ?? data?['ly_do'] as String?,
       reasonCode: data?['reason_code'] as String?,
       canHoanTien: data?['can_hoan_tien'] as bool? ?? false,

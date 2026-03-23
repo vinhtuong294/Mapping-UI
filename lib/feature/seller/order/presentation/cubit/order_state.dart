@@ -84,7 +84,7 @@ class SellerOrder extends Equatable {
       orderTime: _formatOrderTime(model.thoiGianGiaoHang),
       products: model.chiTietDonHang.map((item) => OrderProduct(
         maNguyenLieu: item.maNguyenLieu,
-        name: item.maNguyenLieu, // TODO: Fetch tên nguyên liệu
+        name: item.tenNguyenLieu,
         quantity: item.soLuong,
         price: item.giaCuoi,
         total: item.thanhTien,

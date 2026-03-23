@@ -20,8 +20,16 @@ class SignUpCubit extends Cubit<SignUpState> {
         super(SignUpInitial());
 
   bool _isPasswordVisible = false;
+  String _selectedRole = 'nguoi_mua';
 
   bool get isPasswordVisible => _isPasswordVisible;
+  String get selectedRole => _selectedRole;
+
+  /// Cập nhật vai trò
+  void setRole(String role) {
+    _selectedRole = role;
+    emit(SignUpRoleChanged(role: _selectedRole));
+  }
 
   /// Toggle hiển thị/ẩn mật khẩu
   void togglePasswordVisibility() {
@@ -106,6 +114,19 @@ class SignUpCubit extends Cubit<SignUpState> {
     return null;
   }
 
+  /// Validate nhập lại mật khẩu
+  String? validateConfirmPassword(String? password, String? confirmPassword) {
+    if (confirmPassword == null || confirmPassword.isEmpty) {
+      return 'Vui lòng nhập lại mật khẩu';
+    }
+    
+    if (password != confirmPassword) {
+      return 'Mật khẩu nhập lại không khớp';
+    }
+    
+    return null;
+  }
+
   /// Xử lý đăng ký
   /// 
   /// Tham số:
@@ -116,20 +137,25 @@ class SignUpCubit extends Cubit<SignUpState> {
   Future<bool> signUp({
     required String username,
     required String password,
+    required String confirmPassword,
     required String fullName,
-    String role = 'nguoi_mua',
+    String? role,
   }) async {
+    final finalRole = role ?? _selectedRole;
+    
     // Validate inputs
     final usernameError = validateEmail(username);
     final passwordError = validatePassword(password);
+    final confirmPasswordError = validateConfirmPassword(password, confirmPassword);
     final nameError = validateName(fullName);
 
-    if (usernameError != null || passwordError != null || nameError != null) {
+    if (usernameError != null || passwordError != null || confirmPasswordError != null || nameError != null) {
       emit(SignUpValidationError(
         nameError: nameError,
         phoneError: null,
         emailError: usernameError,
         passwordError: passwordError,
+        confirmPasswordError: confirmPasswordError,
       ));
       return false;
     }
@@ -142,7 +168,7 @@ class SignUpCubit extends Cubit<SignUpState> {
         username: username,
         password: password,
         fullName: fullName,
-        role: role,
+        role: finalRole,
       );
 
       // Check if cubit is still open before emitting success

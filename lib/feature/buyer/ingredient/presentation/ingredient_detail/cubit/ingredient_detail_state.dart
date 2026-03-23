@@ -26,6 +26,9 @@ class IngredientDetailState extends Equatable {
   final int totalReviews;
   final double avgRating;
   final bool isLoadingReviews;
+  final bool isAddingToCart;
+  final String? lastCartActionMessage;
+  final bool? lastCartActionSuccess;
 
   const IngredientDetailState({
     this.maNguyenLieu,
@@ -51,6 +54,9 @@ class IngredientDetailState extends Equatable {
     this.totalReviews = 0,
     this.avgRating = 0.0,
     this.isLoadingReviews = false,
+    this.isAddingToCart = false,
+    this.lastCartActionMessage,
+    this.lastCartActionSuccess,
   });
 
   IngredientDetailState copyWith({
@@ -77,6 +83,9 @@ class IngredientDetailState extends Equatable {
     int? totalReviews,
     double? avgRating,
     bool? isLoadingReviews,
+    bool? isAddingToCart,
+    String? lastCartActionMessage,
+    bool? lastCartActionSuccess,
   }) {
     return IngredientDetailState(
       maNguyenLieu: maNguyenLieu ?? this.maNguyenLieu,
@@ -104,6 +113,9 @@ class IngredientDetailState extends Equatable {
       totalReviews: totalReviews ?? this.totalReviews,
       avgRating: avgRating ?? this.avgRating,
       isLoadingReviews: isLoadingReviews ?? this.isLoadingReviews,
+      isAddingToCart: isAddingToCart ?? this.isAddingToCart,
+      lastCartActionMessage: lastCartActionMessage, // Luôn reset hoặc set mới
+      lastCartActionSuccess: lastCartActionSuccess, // Luôn reset hoặc set mới
     );
   }
 
@@ -132,6 +144,9 @@ class IngredientDetailState extends Equatable {
         totalReviews,
         avgRating,
         isLoadingReviews,
+        isAddingToCart,
+        lastCartActionMessage,
+        lastCartActionSuccess,
       ];
 }
 
@@ -149,6 +164,7 @@ class Seller extends Equatable {
   final String? imagePath;
   final int soLuongBan; // Số lượng: > 0 còn hàng, <= 0 hết hàng
   final String? unit;
+  final String tinhTrang; // "dang_mo_cua" hoặc "tam_nghi"
 
   const Seller({
     required this.maGianHang,
@@ -160,10 +176,14 @@ class Seller extends Equatable {
     this.imagePath,
     required this.soLuongBan,
     this.unit,
+    this.tinhTrang = 'dang_mo_cua',
   });
 
   /// Kiểm tra còn hàng không (so_luong_ban > 0 = còn hàng)
   bool get conHang => soLuongBan > 0;
+
+  /// Kiểm tra gian hàng có đang mở cửa không
+  bool get isMoCua => tinhTrang == 'dang_mo_cua';
 
   @override
   List<Object?> get props => [
@@ -176,6 +196,7 @@ class Seller extends Equatable {
         imagePath,
         soLuongBan,
         unit,
+        tinhTrang,
       ];
 }
 

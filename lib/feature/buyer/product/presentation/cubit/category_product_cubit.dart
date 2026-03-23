@@ -131,28 +131,50 @@ class CategoryProductCubit extends Cubit<CategoryProductState> {
     }
   }
 
-  /// Fetch chi tiết cho danh sách món ăn
-  Future<List<MonAnWithImage>> _fetchMonAnImages(
-      List<MonAnModel> monAnList) async {
+  /// Fetch chi tiết (ảnh, thời gian nấu, độ khó, khẩu phần) cho danh sách món ăn
+  Future<List<MonAnWithImage>> _fetchMonAnImages(List<MonAnModel> monAnList) async {
     final result = <MonAnWithImage>[];
 
     for (int i = 0; i < monAnList.length; i++) {
       final monAn = monAnList[i];
       try {
+        // Ưu tiên dùng ảnh từ monAn (list API) nếu có
+        if (monAn.hinhAnh != null && monAn.hinhAnh!.isNotEmpty) {
+          result.add(MonAnWithImage(
+            monAn: monAn,
+            imageUrl: monAn.hinhAnh!.startsWith('http') 
+                ? monAn.hinhAnh! 
+                : '${AppConfig.imageBaseUrl}${monAn.hinhAnh!.startsWith('/') ? '' : '/'}${monAn.hinhAnh}',
+            cookTime: 40,
+            difficulty: 'Dễ',
+            servings: 4,
+          ));
+          continue;
+        }
+
         print('   [${i + 1}/${monAnList.length}] Fetch chi tiết: ${monAn.maMonAn} - ${monAn.tenMonAn}');
         final detail = await _monAnService.getMonAnDetail(monAn.maMonAn);
+        
         result.add(MonAnWithImage(
           monAn: monAn,
-          imageUrl: detail.hinhAnh,
-          cookTime: detail.khoangThoiGian,
-          difficulty: detail.doKho,
-          servings: detail.khauPhanTieuChuan,
+          imageUrl: detail.hinhAnh.isNotEmpty 
+              ? (detail.hinhAnh.startsWith('http') ? detail.hinhAnh : '${AppConfig.imageBaseUrl}${detail.hinhAnh.startsWith('/') ? '' : '/'}${detail.hinhAnh}')
+              : 'assets/img/mon_an_icon.png',
+          cookTime: detail.khoangThoiGian ?? 40,
+          difficulty: detail.doKho ?? 'Dễ',
+          servings: detail.khauPhanTieuChuan ?? 4,
         ));
       } catch (e) {
         print('❌ [ERROR] Lỗi khi lấy chi tiết cho món ${monAn.maMonAn}: $e');
+        // Fallback: dùng ảnh từ monAn nếu có
         result.add(MonAnWithImage(
           monAn: monAn,
-          imageUrl: '',
+          imageUrl: monAn.hinhAnh != null && monAn.hinhAnh!.isNotEmpty
+              ? (monAn.hinhAnh!.startsWith('http') ? monAn.hinhAnh! : '${AppConfig.imageBaseUrl}${monAn.hinhAnh!.startsWith('/') ? '' : '/'}${monAn.hinhAnh}')
+              : 'assets/img/mon_an_icon.png',
+          cookTime: 40,
+          difficulty: 'Dễ',
+          servings: 4,
         ));
       }
     }

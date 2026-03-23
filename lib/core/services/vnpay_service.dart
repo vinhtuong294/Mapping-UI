@@ -19,7 +19,7 @@ class VNPayService {
       }
 
       final url = Uri.parse(
-        '${AppConfig.buyerBaseUrl}/orders/$maDonHang',
+        '${AppConfig.baseUrl}/orders/$maDonHang',
       );
 
       print('💳 [VNPAY] Request URL: $url');

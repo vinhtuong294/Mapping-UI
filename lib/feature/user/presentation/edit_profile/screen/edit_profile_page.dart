@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import '../../../../../core/widgets/buyer_loading.dart';
+import '../../../../../core/services/geocoding_service.dart';
 import '../cubit/edit_profile_cubit.dart';
 
 /// Trang chỉnh sửa thông tin cá nhân
@@ -34,6 +37,19 @@ class _EditProfileViewState extends State<EditProfileView> {
   final _chieuCaoController = TextEditingController();
   String _selectedGioiTinh = 'M';
   bool _isInitialized = false;
+  final MapController _mapController = MapController();
+
+  @override
+  void initState() {
+    super.initState();
+    _addressController.addListener(_onAddressChanged);
+  }
+
+  void _onAddressChanged() {
+    if (_isInitialized) {
+      context.read<EditProfileCubit>().updateAddress(_addressController.text);
+    }
+  }
 
   @override
   void dispose() {
@@ -44,6 +60,7 @@ class _EditProfileViewState extends State<EditProfileView> {
     _nganHangController.dispose();
     _canNangController.dispose();
     _chieuCaoController.dispose();
+    _mapController.dispose();
     super.dispose();
   }
 
@@ -79,6 +96,15 @@ class _EditProfileViewState extends State<EditProfileView> {
           setState(() {
             _selectedGioiTinh = state.gioiTinh ?? 'M';
           });
+          
+          if (state.latitude != null && state.longitude != null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _mapController.move(LatLng(state.latitude!, state.longitude!), 15);
+            });
+          }
+        } else if (state is EditProfileLoaded && state.latitude != null && state.longitude != null) {
+          // Update map when coordinates change (e.g. from suggestion)
+           _mapController.move(LatLng(state.latitude!, state.longitude!), 15);
         }
       },
       builder: (context, state) {
@@ -173,7 +199,7 @@ class _EditProfileViewState extends State<EditProfileView> {
           // Address field
           _buildFieldLabel('Địa chỉ'),
           const SizedBox(height: 8),
-          _buildTextField(_addressController, 'Nhập địa chỉ'),
+          _buildAddressField(context, state),
           
           const SizedBox(height: 20),
           
@@ -220,8 +246,8 @@ class _EditProfileViewState extends State<EditProfileView> {
           
           const SizedBox(height: 24),
           
-          // Map placeholder
-          _buildMapSection(),
+          // Map Section
+          _buildMapSection(state),
           
           const SizedBox(height: 32),
           
@@ -337,60 +363,103 @@ class _EditProfileViewState extends State<EditProfileView> {
     );
   }
 
-  Widget _buildMapSection() {
+  Widget _buildMapSection(EditProfileState state) {
+    if (state is! EditProfileLoaded) return const SizedBox.shrink();
+
+    final lat = state.latitude ?? 16.047079; // Default to Da Nang
+    final lon = state.longitude ?? 108.206230;
+
     return Container(
-      height: 180,
+      height: 250,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE0E0E0)),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
-        child: Stack(
+        child: FlutterMap(
+          mapController: _mapController,
+          options: MapOptions(
+            initialCenter: LatLng(lat, lon),
+            initialZoom: 15.0,
+          ),
           children: [
-            // Map placeholder
-            Container(
-              color: const Color(0xFFE8E8E8),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.map,
-                      size: 48,
-                      color: Colors.grey[400],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Bản đồ vị trí',
-                      style: TextStyle(
-                        fontFamily: 'Roboto',
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            TileLayer(
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'com.market.app',
             ),
-            // Location pin
-            Center(
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: const BoxDecoration(
-                  color: Colors.red,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.location_on,
-                  color: Colors.white,
-                  size: 20,
-                ),
+            if (state.latitude != null && state.longitude != null)
+              MarkerLayer(
+                markers: [
+                  Marker(
+                    point: LatLng(state.latitude!, state.longitude!),
+                    width: 40,
+                    height: 40,
+                    child: const Icon(
+                      Icons.location_on,
+                      color: Colors.red,
+                      size: 40,
+                    ),
+                  ),
+                ],
               ),
-            ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildAddressField(BuildContext context, EditProfileState state) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildTextField(_addressController, 'Nhập địa chỉ'),
+        if (state is EditProfileLoaded && (state.isSearchingAddress || state.addressSuggestions.isNotEmpty))
+          Container(
+            margin: const EdgeInsets.only(top: 4),
+            constraints: const BoxConstraints(maxHeight: 200),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: state.isSearchingAddress
+                ? const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                  )
+                : ListView.separated(
+                    shrinkWrap: true,
+                    padding: EdgeInsets.zero,
+                    itemCount: state.addressSuggestions.length,
+                    separatorBuilder: (context, index) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final suggestion = state.addressSuggestions[index] as MapSuggestion;
+                      return ListTile(
+                        leading: const Icon(Icons.location_on_outlined, color: Color(0xFF00B40F)),
+                        title: Text(
+                          suggestion.displayName,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                        onTap: () {
+                          _addressController.removeListener(_onAddressChanged);
+                          _addressController.text = suggestion.displayName;
+                          context.read<EditProfileCubit>().selectSuggestion(suggestion);
+                          _addressController.addListener(_onAddressChanged);
+                        },
+                      );
+                    },
+                  ),
+          ),
+      ],
     );
   }
 

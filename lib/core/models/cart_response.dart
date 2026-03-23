@@ -11,6 +11,26 @@ class CartResponse {
   });
 
   factory CartResponse.fromJson(Map<String, dynamic> json) {
+    if (json.containsKey('cart_id')) {
+      final cartId = json['cart_id'];
+      final totalAmount = _parseToDouble(json['total_amount']);
+      final itemsList = (json['items'] as List<dynamic>?)
+              ?.map((item) => CartItem.fromJson(item))
+              .toList() ?? [];
+              
+      return CartResponse(
+        success: true,
+        cart: CartSummary(
+          maDonHang: cartId,
+          tongTien: totalAmount,
+          tongTienGoc: totalAmount,
+          tietKiem: 0,
+          soMatHang: itemsList.length,
+        ),
+        items: itemsList,
+      );
+    }
+
     // API trả về nested cart object
     final cartData = json['cart'] as Map<String, dynamic>?;
     
@@ -92,15 +112,15 @@ class CartItem {
 
   factory CartItem.fromJson(Map<String, dynamic> json) {
     return CartItem(
-      maNguyenLieu: json['ma_nguyen_lieu'] ?? '',
-      tenNguyenLieu: json['ten_nguyen_lieu'] ?? '',
-      maGianHang: json['ma_gian_hang'] ?? '',
-      tenGianHang: json['ten_gian_hang'] ?? '',
+      maNguyenLieu: json['ingredient_id'] ?? json['ma_nguyen_lieu'] ?? '',
+      tenNguyenLieu: json['ingredient_name'] ?? json['ten_nguyen_lieu'] ?? '',
+      maGianHang: json['stall_id'] ?? json['ma_gian_hang'] ?? '',
+      tenGianHang: json['stall_name'] ?? json['ten_gian_hang'] ?? '',
       maCho: json['ma_cho'] ?? '',
-      soLuong: _parseToInt(json['so_luong']),
-      giaCuoi: _parseToDouble(json['don_gia'] ?? json['gia_cuoi']),
-      thanhTien: _parseToDouble(json['thanh_tien']),
-      hinhAnh: json['hinh_anh'],
+      soLuong: _parseToInt(json['cart_quantity'] ?? json['so_luong']),
+      giaCuoi: _parseToDouble(json['price'] ?? json['don_gia'] ?? json['gia_cuoi']),
+      thanhTien: _parseToDouble(json['line_total'] ?? json['thanh_tien']),
+      hinhAnh: json['hinh_anh'] ?? json['hinhAnh'] ?? json['product_image'],
     );
   }
 
@@ -142,6 +162,17 @@ class AddToCartResponse {
   });
 
   factory AddToCartResponse.fromJson(Map<String, dynamic> json) {
+    if (json.containsKey('cart_id')) {
+      return AddToCartResponse(
+        success: true, // Nếu parse được CartResponse thì là AddToCart success
+        maDonHang: json['cart_id'],
+        tongTien: _parseToDouble(json['total_amount']),
+        tongTienGoc: _parseToDouble(json['total_amount']),
+        tietKiem: 0.0,
+        message: 'Thêm vào giỏ hàng thành công',
+      );
+    }
+    
     return AddToCartResponse(
       success: json['success'] ?? false,
       maDonHang: json['ma_don_hang'],
