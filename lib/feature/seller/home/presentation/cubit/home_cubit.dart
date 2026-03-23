@@ -1,8 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../../core/services/auth/auth_service.dart';
 import '../../../../../core/services/seller_order_service.dart';
 import '../../../../../core/services/nhom_nguyen_lieu_service.dart';
 import '../../../../../core/services/revenue_service.dart';
+import '../../../../../core/services/gian_hang_service.dart';
+import '../../../../../core/services/local_storage_service.dart';
 import 'home_state.dart';
 import 'package:intl/intl.dart';
 import '../../../../../core/models/seller_order_model.dart' as model;
@@ -11,6 +14,8 @@ class SellerHomeCubit extends Cubit<SellerHomeState> {
   final AuthService _authService = AuthService();
   final SellerOrderService _orderService = SellerOrderService();
   final RevenueService _revenueService = RevenueService();
+  final GianHangService _shopService = GianHangService();
+  final LocalStorageService _localStorageService = LocalStorageService();
 
   SellerHomeCubit() : super(SellerHomeState.initial());
 
@@ -18,13 +23,43 @@ class SellerHomeCubit extends Cubit<SellerHomeState> {
     emit(state.copyWith(isLoading: true));
 
     try {
-      // 1. Lấy thông tin shop (user name)
+      // 1. Lấy thông tin shop (user name và trạng thái gian hàng)
       String shopName = 'Cửa hàng của bạn';
+      bool isStoreOpen = state.isStoreOpen; // Giữ giá trị hiện tại làm mặc định
+      String? maGianHang;
+
       try {
         final user = await _authService.getCurrentUser();
         shopName = user.tenNguoiDung.isNotEmpty ? user.tenNguoiDung : user.tenDangNhap;
+
+        // Lấy mã gian hàng từ sản phẩm đầu tiên để fetch chi tiết gian hàng
+        final productsResponse = await NhomNguyenLieuService.getSellerProducts(limit: 1);
+        if (productsResponse.data.isNotEmpty) {
+          maGianHang = productsResponse.data[0]['ma_gian_hang'];
+          if (maGianHang != null) {
+            // Kiểm tra trạng thái lưu local trước
+            final savedStatus = _localStorageService.getShopStatus(maGianHang!);
+            if (savedStatus != null) {
+              isStoreOpen = (savedStatus == 'mo_cua' || savedStatus == 'dang_mo_cua');
+              debugPrint('🏪 [HOME_CUBIT] Found saved status in local (Init): $savedStatus (isStoreOpen: $isStoreOpen)');
+            }
+
+            final shopDetail = await _shopService.getShopDetail(maGianHang!);
+            if (shopDetail.success) {
+              final apiStatus = shopDetail.detail.tinhTrang;
+              // Normalize status từ API
+              final apiIsStoreOpen = (apiStatus == 'mo_cua' || apiStatus == 'dang_mo_cua');
+              
+              // Cập nhật lại local storage để đồng bộ với server
+              await _localStorageService.saveShopStatus(maGianHang!, apiIsStoreOpen ? 'mo_cua' : 'dong_cua');
+              
+              isStoreOpen = apiIsStoreOpen;
+              debugPrint('🏪 [HOME_CUBIT] Initialized from API: $apiStatus (isStoreOpen: $isStoreOpen)');
+            }
+          }
+        }
       } catch (e) {
-        // Fallback or log error
+        debugPrint('❌ [HOME_CUBIT] Error fetching shop status in Init: $e');
       }
 
       // 2. Lấy danh sách đơn hàng để tính toán thống kê và đơn hàng mới
@@ -90,6 +125,35 @@ class SellerHomeCubit extends Cubit<SellerHomeState> {
           toDate: df.format(end),
         );
 
+        // Lấy mã gian hàng từ dữ liệu doanh thu nếu chưa có
+        if (maGianHang == null && revenueResult.containsKey('stall_id')) {
+          maGianHang = revenueResult['stall_id']?.toString();
+          debugPrint('🏪 [HOME_CUBIT] Got maGianHang from Revenue: $maGianHang');
+          
+          if (maGianHang != null) {
+            // 1. Kiểm tra trạng thái lưu local trước (để đảm bảo tính nhất quán trên thiết bị)
+            final savedStatus = _localStorageService.getShopStatus(maGianHang!);
+            if (savedStatus != null) {
+              isStoreOpen = (savedStatus == 'mo_cua' || savedStatus == 'dang_mo_cua');
+              debugPrint('🏪 [HOME_CUBIT] Found saved status in local: $savedStatus (isStoreOpen: $isStoreOpen)');
+            }
+
+            // 2. Vẫn fetch lại từ API để sync nếu server có hỗ trợ trả về status (fallback)
+            final shopDetail = await _shopService.getShopDetail(maGianHang!);
+            if (shopDetail.success) {
+              // Chỉ ghi đè nếu API thực sự trả về một giá trị hợp lệ (không phải null)
+              final apiStatus = shopDetail.detail.tinhTrang;
+              final apiIsStoreOpen = (apiStatus == 'mo_cua' || apiStatus == 'dang_mo_cua');
+              
+              // Đồng bộ lại local storage với server
+              await _localStorageService.saveShopStatus(maGianHang!, apiIsStoreOpen ? 'mo_cua' : 'dong_cua');
+              
+              isStoreOpen = apiIsStoreOpen;
+              debugPrint('🏪 [HOME_CUBIT] Synced from API (Revenue Flow): $apiStatus (isStoreOpen: $isStoreOpen)');
+            }
+          }
+        }
+
         if (revenueResult.containsKey('chi_tiet')) {
           final List<dynamic> details = revenueResult['chi_tiet'];
           for (var item in details) {
@@ -119,6 +183,8 @@ class SellerHomeCubit extends Cubit<SellerHomeState> {
       emit(state.copyWith(
         isLoading: false,
         shopName: shopName,
+        isStoreOpen: isStoreOpen,
+        maGianHang: maGianHang,
         dailyOverview: DailyOverview(
           revenue: todayRevenue,
           orderCount: todayOrderCount,
@@ -156,8 +222,37 @@ class SellerHomeCubit extends Cubit<SellerHomeState> {
   }
 
   /// Toggle trạng thái cửa hàng (mở/đóng)
-  void toggleStoreStatus() {
-    emit(state.copyWith(isStoreOpen: !state.isStoreOpen));
+  Future<void> toggleStoreStatus() async {
+    final newStatus = state.isStoreOpen ? 'dong_cua' : 'mo_cua';
+    
+    // Lưu trạng thái cũ để rollback nếu lỗi
+    final oldStatus = state.isStoreOpen;
+    
+    // Cập nhật UI ngay lập tức để trải nghiệm mượt mà
+    emit(state.copyWith(isStoreOpen: !oldStatus));
+
+    try {
+      final success = await _shopService.updateShopStatus(newStatus);
+      if (success) {
+        // Lưu lại trạng thái vào local để persist qua logout
+        if (state.maGianHang != null) {
+          await _localStorageService.saveShopStatus(state.maGianHang!, newStatus);
+          debugPrint('🏪 [HOME_CUBIT] Saved new status to local: $newStatus');
+        }
+      } else {
+        // Rollback nếu API trả về false
+        emit(state.copyWith(
+          isStoreOpen: oldStatus,
+          errorMessage: 'Không thể cập nhật trạng thái gian hàng',
+        ));
+      }
+    } catch (e) {
+      // Rollback và báo lỗi nếu có exception
+      emit(state.copyWith(
+        isStoreOpen: oldStatus,
+        errorMessage: 'Lỗi cập nhật trạng thái: $e',
+      ));
+    }
   }
 
   /// Refresh dữ liệu

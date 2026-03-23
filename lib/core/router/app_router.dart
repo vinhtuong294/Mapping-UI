@@ -40,6 +40,9 @@ import '../../feature/user/presentation/edit_profile/screen/edit_profile_page.da
 class AppRouter {
   AppRouter._();
 
+  /// Global navigator key to access navigator without context
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
   /// Generate route based on route settings
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {

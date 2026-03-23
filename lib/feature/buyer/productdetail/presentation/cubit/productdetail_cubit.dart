@@ -39,6 +39,7 @@ class ProductDetailCubit extends Cubit<ProductDetailState> {
             maGianHang: gh.maGianHang,
             tenGianHang: gh.tenGianHang,
             maCho: gh.maCho,
+            tinhTrang: gh.tinhTrang,
           );
         }).toList();
         
@@ -169,11 +170,21 @@ class ProductDetailCubit extends Cubit<ProductDetailState> {
       final gianHang = nl.gianHang!.first;
       debugPrint('   - maGianHang: ${gianHang.maGianHang}');
       debugPrint('   - maCho: ${gianHang.maCho}');
+      debugPrint('   - tinhTrang: ${gianHang.tinhTrang}');
       
       if (gianHang.maGianHang == null || gianHang.maGianHang!.isEmpty) {
         failedCount++;
         errors.add('${nl.ten}: Không có mã gian hàng');
         debugPrint('   ❌ Không có mã gian hàng');
+        continue;
+      }
+
+      // KIỂM TRA TRẠNG THÁI GIAN HÀNG
+      if (!gianHang.isMoCua) {
+        failedCount++;
+        final errorMsg = 'Gian hàng ${gianHang.tenGianHang ?? ""} đang đóng cửa, không thể thêm vào giỏ hàng';
+        errors.add('${nl.ten}: $errorMsg');
+        debugPrint('   ❌ $errorMsg');
         continue;
       }
 
@@ -192,7 +203,12 @@ class ProductDetailCubit extends Cubit<ProductDetailState> {
         debugPrint('   ✅ Đã thêm ${nl.ten} vào giỏ hàng');
       } catch (e) {
         failedCount++;
-        errors.add('${nl.ten}: $e');
+        String errorMsg = e.toString();
+        // Xử lý thông báo lỗi từ API nếu có
+        if (errorMsg.contains('Gian hàng đang đóng cửa')) {
+          errorMsg = 'Gian hàng đang đóng cửa, không thể thêm vào giỏ hàng';
+        }
+        errors.add('${nl.ten}: $errorMsg');
         debugPrint('   ❌ Lỗi thêm ${nl.ten}: $e');
       }
     }
@@ -229,6 +245,17 @@ class ProductDetailCubit extends Cubit<ProductDetailState> {
       return false;
     }
 
+    // KIỂM TRA TRẠNG THÁI GIAN HÀNG
+    if (!gianHang.isMoCua) {
+      debugPrint('   ❌ Gian hàng đang đóng cửa');
+      emit(state.copyWith(errorMessage: 'Gian hàng đang đóng cửa, không thể thêm vào giỏ hàng'));
+      // Xóa error message sau 3s
+      Future.delayed(const Duration(seconds: 3), () {
+        if (!isClosed) emit(state.copyWith(errorMessage: null));
+      });
+      return false;
+    }
+
     final soLuong = _parseSoLuong(nl.dinhLuong);
 
     try {
@@ -246,6 +273,13 @@ class ProductDetailCubit extends Cubit<ProductDetailState> {
       return true;
     } catch (e) {
       debugPrint('   ❌ Lỗi thêm ${nl.ten}: $e');
+      String errorMsg = e.toString();
+      if (errorMsg.contains('Gian hàng đang đóng cửa')) {
+        emit(state.copyWith(errorMessage: 'Gian hàng đang đóng cửa, không thể thêm vào giỏ hàng'));
+        Future.delayed(const Duration(seconds: 3), () {
+          if (!isClosed) emit(state.copyWith(errorMessage: null));
+        });
+      }
       return false;
     }
   }

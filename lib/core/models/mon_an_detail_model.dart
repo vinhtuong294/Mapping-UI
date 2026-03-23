@@ -202,18 +202,24 @@ class GianHangInfo {
   final String? maGianHang;
   final String? tenGianHang;
   final String? maCho;
+  final String? tinhTrang;
 
   GianHangInfo({
     this.maGianHang,
     this.tenGianHang,
     this.maCho,
+    this.tinhTrang,
   });
+
+  /// Kiểm tra gian hàng có đang mở cửa không
+  bool get isMoCua => tinhTrang == 'dang_mo_cua' || tinhTrang == null;
 
   factory GianHangInfo.fromJson(Map<String, dynamic> json) {
     return GianHangInfo(
       maGianHang: json['ma_gian_hang'] as String?,
       tenGianHang: json['ten_gian_hang'] as String?,
       maCho: json['ma_cho'] as String?,
+      tinhTrang: json['tinh_trang'] as String?,
     );
   }
 
@@ -222,6 +228,7 @@ class GianHangInfo {
       'ma_gian_hang': maGianHang,
       'ten_gian_hang': tenGianHang,
       'ma_cho': maCho,
+      'tinh_trang': tinhTrang,
     };
   }
 }

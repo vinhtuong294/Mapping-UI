@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
+import 'auth/auth_service.dart';
 import '../services/auth/simple_auth_helper.dart';
 
 class RevenueService {
   static const String _baseUrl = AppConfig.sellerBaseUrl;
+  final AuthService _authService = AuthService();
 
   Future<Map<String, dynamic>> getRevenue({
     required String fromDate,
@@ -35,6 +37,9 @@ class RevenueService {
 
       if (response.statusCode == 200) {
         return json.decode(utf8.decode(response.bodyBytes));
+      } else if (response.statusCode == 401) {
+        await _authService.handleUnauthorized();
+        throw Exception('Phiên đăng nhập hết hạn');
       } else {
         throw Exception('Failed to load revenue: ${response.statusCode}');
       }

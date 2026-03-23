@@ -701,12 +701,17 @@ class _ProductDetailViewState extends State<_ProductDetailView> {
             itemCount: state.nguyenLieu!.length,
             itemBuilder: (context, index) {
               final nl = state.nguyenLieu![index];
+              final gianHang = nl.gianHang?.isNotEmpty == true ? nl.gianHang!.first : null;
+              final isShopOpen = gianHang?.isMoCua ?? true;
+
               return IngredientGridCard(
                 name: nl.ten,
                 price: nl.giaDisplay ?? (nl.dinhLuong.isNotEmpty && nl.donVi != null
                     ? '${nl.dinhLuong} ${nl.donVi}'
                     : null),
                 imagePath: nl.hinhAnh,
+                shopName: gianHang?.tenGianHang,
+                isShopOpen: isShopOpen,
                 onTap: () {
                   // Navigate to ingredient detail
                   if (nl.maNguyenLieu != null) {

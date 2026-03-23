@@ -163,7 +163,7 @@ class SellerUserCubit extends Cubit<SellerUserState> {
     try {
       emit(state.copyWith(isLoading: true));
       await _authService.logout();
-      // Logic điều hướng logout đã được xử lý bởi app_router hoặc main.dart listener
+      emit(state.copyWith(isLoading: false, isLoggedOut: true));
     } catch (e) {
       emit(state.copyWith(
         isLoading: false,

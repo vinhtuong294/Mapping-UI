@@ -185,15 +185,20 @@ class GianHangSimple extends Equatable {
   final String? maGianHang;
   final String? tenGianHang;
   final String? maCho;
+  final String? tinhTrang;
 
   const GianHangSimple({
     this.maGianHang,
     this.tenGianHang,
     this.maCho,
+    this.tinhTrang,
   });
 
+  /// Kiểm tra gian hàng có đang mở cửa không
+  bool get isMoCua => tinhTrang == 'dang_mo_cua' || tinhTrang == null;
+
   @override
-  List<Object?> get props => [maGianHang, tenGianHang, maCho];
+  List<Object?> get props => [maGianHang, tenGianHang, maCho, tinhTrang];
 }
 
 /// Kết quả thêm tất cả nguyên liệu vào giỏ hàng

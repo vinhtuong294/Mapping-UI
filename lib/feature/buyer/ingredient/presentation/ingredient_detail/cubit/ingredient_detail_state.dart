@@ -164,6 +164,7 @@ class Seller extends Equatable {
   final String? imagePath;
   final int soLuongBan; // Số lượng: > 0 còn hàng, <= 0 hết hàng
   final String? unit;
+  final String tinhTrang; // "dang_mo_cua" hoặc "tam_nghi"
 
   const Seller({
     required this.maGianHang,
@@ -175,10 +176,14 @@ class Seller extends Equatable {
     this.imagePath,
     required this.soLuongBan,
     this.unit,
+    this.tinhTrang = 'dang_mo_cua',
   });
 
   /// Kiểm tra còn hàng không (so_luong_ban > 0 = còn hàng)
   bool get conHang => soLuongBan > 0;
+
+  /// Kiểm tra gian hàng có đang mở cửa không
+  bool get isMoCua => tinhTrang == 'dang_mo_cua';
 
   @override
   List<Object?> get props => [
@@ -191,6 +196,7 @@ class Seller extends Equatable {
         imagePath,
         soLuongBan,
         unit,
+        tinhTrang,
       ];
 }
 

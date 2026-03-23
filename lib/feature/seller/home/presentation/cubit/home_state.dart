@@ -80,6 +80,7 @@ class SellerHomeState extends Equatable {
   final double revenueChangePercentage; // Phần trăm thay đổi doanh thu
   final int currentTabIndex;
   final bool isStoreOpen;
+  final String? maGianHang;
 
   const SellerHomeState({
     required this.shopName,
@@ -95,6 +96,7 @@ class SellerHomeState extends Equatable {
     this.revenueChangePercentage = 0,
     this.currentTabIndex = 0,
     this.isStoreOpen = true,
+    this.maGianHang,
   });
 
   /// Factory tạo state ban đầu
@@ -134,6 +136,7 @@ class SellerHomeState extends Equatable {
     double? revenueChangePercentage,
     int? currentTabIndex,
     bool? isStoreOpen,
+    String? maGianHang,
   }) {
     return SellerHomeState(
       shopName: shopName ?? this.shopName,
@@ -149,6 +152,7 @@ class SellerHomeState extends Equatable {
       revenueChangePercentage: revenueChangePercentage ?? this.revenueChangePercentage,
       currentTabIndex: currentTabIndex ?? this.currentTabIndex,
       isStoreOpen: isStoreOpen ?? this.isStoreOpen,
+      maGianHang: maGianHang ?? this.maGianHang,
     );
   }
 
@@ -167,5 +171,6 @@ class SellerHomeState extends Equatable {
         revenueChangePercentage,
         currentTabIndex,
         isStoreOpen,
+        maGianHang,
       ];
 }

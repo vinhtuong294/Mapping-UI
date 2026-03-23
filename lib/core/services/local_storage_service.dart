@@ -99,6 +99,28 @@ class LocalStorageService {
     }
   }
 
+  // ==================== Shop Status Management ====================
+
+  /// Save shop status by ID (survives logout)
+  Future<bool> saveShopStatus(String stallId, String status) async {
+    try {
+      return await prefs.setString('shop_status_$stallId', status);
+    } catch (e) {
+      AppLogger.error('Error saving shop status', e);
+      return false;
+    }
+  }
+
+  /// Get shop status by ID
+  String? getShopStatus(String stallId) {
+    try {
+      return prefs.getString('shop_status_$stallId');
+    } catch (e) {
+      AppLogger.error('Error getting shop status', e);
+      return null;
+    }
+  }
+
   // ==================== User Data Management ====================
 
   /// Save user data

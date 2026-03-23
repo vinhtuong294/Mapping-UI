@@ -48,6 +48,9 @@ class MyApp extends StatelessWidget {
       title: AppConfig.appName,
       debugShowCheckedModeBanner: false,
       
+      // Navigation
+      navigatorKey: AppRouter.navigatorKey,
+      
       // Theme
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,

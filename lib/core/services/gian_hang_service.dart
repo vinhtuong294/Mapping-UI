@@ -50,7 +50,8 @@ class GianHangService {
         final jsonData = json.decode(utf8.decode(response.bodyBytes));
         return GianHangResponse.fromJson(jsonData);
       } else if (response.statusCode == 401) {
-        throw UnauthorizedException('Token hết hạn hoặc không hợp lệ');
+        await _authService.handleUnauthorized();
+        throw UnauthorizedException('Phiên đăng nhập hết hạn');
       } else {
         throw ServerException('Lỗi server: ${response.statusCode}');
       }
@@ -99,7 +100,8 @@ class GianHangService {
 
         return ShopDetailResponse.fromJson(jsonData);
       } else if (response.statusCode == 401) {
-        throw UnauthorizedException('Token hết hạn hoặc không hợp lệ');
+        await _authService.handleUnauthorized();
+        throw UnauthorizedException('Phiên đăng nhập hết hạn');
       } else if (response.statusCode == 404) {
         throw ServerException('Không tìm thấy gian hàng');
       } else {
@@ -113,6 +115,47 @@ class GianHangService {
         rethrow;
       }
       throw NetworkException('Lỗi kết nối: ${e.toString()}');
+    }
+  }
+
+  /// Cập nhật trạng thái gian hàng (mo_cua / dong_cua)
+  /// API: PATCH /api/seller/stall/status
+  Future<bool> updateShopStatus(String status) async {
+    if (AppConfig.enableApiLogging) {
+      AppLogger.info('🏪 [GIAN HANG] Updating stall status to: $status');
+    }
+
+    try {
+      final token = await _authService.getToken();
+      final uri = Uri.parse('${AppConfig.baseUrl}/seller/stall/status');
+
+      final response = await http.patch(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+        body: json.encode({'status': status}),
+      );
+
+      if (AppConfig.enableApiLogging) {
+        AppLogger.info('🏪 [GIAN HANG] Update status response: ${response.statusCode}');
+        AppLogger.info('🏪 [GIAN HANG] Response body: ${response.body}');
+      }
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return true;
+      } else if (response.statusCode == 401) {
+        await _authService.handleUnauthorized();
+        throw UnauthorizedException('Phiên đăng nhập hết hạn');
+      } else {
+        throw ServerException('Lỗi server: ${response.statusCode}');
+      }
+    } catch (e) {
+      if (AppConfig.enableApiLogging) {
+        AppLogger.error('❌ [GIAN HANG] Error updating status: $e');
+      }
+      rethrow;
     }
   }
 }

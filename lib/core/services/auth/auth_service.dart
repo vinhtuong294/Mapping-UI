@@ -1,9 +1,12 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../../config/app_config.dart';
+import '../../config/route_name.dart';
+import '../../router/app_router.dart';
 import '../../error/app_exception.dart';
-import '../../utils/app_logger.dart';
 import '../../models/user_model.dart';
+import '../../utils/app_logger.dart';
 import '../local_storage_service.dart';
 import 'auth_response.dart';
 
@@ -357,6 +360,7 @@ class AuthService {
         
         return user;
       } else if (response.statusCode == 401) {
+        await handleUnauthorized();
         throw UnauthorizedException(message: 'Token hết hạn hoặc không hợp lệ');
       } else {
         throw ServerException(message: 'Lỗi server: ${response.statusCode}', statusCode: response.statusCode);
@@ -382,6 +386,32 @@ class AuthService {
 
     if (AppConfig.enableApiLogging) {
       AppLogger.info('✅ [AUTH] Đã đăng xuất thành công');
+    }
+  }
+
+  /// Xử lý lỗi Unauthorized (401) - Tự động đăng xuất và chuyển về màn hình Login
+  Future<void> handleUnauthorized() async {
+    AppLogger.error('🚨 [AUTH] Unauthorized access detected. Logging out...');
+    
+    // 1. Thực hiện logout để xóa token
+    await logout();
+
+    // 2. Chuyển hướng về màn hình đăng nhập bằng navigatorKey
+    final navigator = AppRouter.navigatorKey.currentState;
+    if (navigator != null) {
+      navigator.pushNamedAndRemoveUntil(
+        RouteName.login,
+        (route) => false,
+      );
+      
+      // Hiển thị thông báo cho người dùng
+      ScaffoldMessenger.of(navigator.context).showSnackBar(
+        const SnackBar(
+          content: Text('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
     }
   }
 

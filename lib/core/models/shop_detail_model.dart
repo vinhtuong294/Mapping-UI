@@ -30,6 +30,7 @@ class ShopDetail {
   final DateTime? ngayDangKy;
   final int soSanPham;
   final int soDanhGia;
+  final String tinhTrang;
   final ShopCho? cho;
 
   ShopDetail({
@@ -41,10 +42,17 @@ class ShopDetail {
     this.ngayDangKy,
     required this.soSanPham,
     required this.soDanhGia,
+    this.tinhTrang = 'dang_mo_cua',
     this.cho,
   });
 
   factory ShopDetail.fromJson(Map<String, dynamic> json) {
+    final rawStatus = json['tinh_trang']?.toString() ?? 'dang_mo_cua';
+    // Normalize status: cả 'dang_mo_cua' và 'mo_cua' đều được coi là mở cửa
+    final normalizedStatus = (rawStatus == 'mo_cua' || rawStatus == 'dang_mo_cua') 
+        ? 'dang_mo_cua' 
+        : 'tam_nghi';
+
     return ShopDetail(
       maGianHang: json['ma_gian_hang']?.toString() ?? '',
       tenGianHang: json['ten_gian_hang']?.toString() ?? '',
@@ -56,6 +64,7 @@ class ShopDetail {
           : null,
       soSanPham: _parseInt(json['so_san_pham']),
       soDanhGia: _parseInt(json['so_danh_gia']),
+      tinhTrang: normalizedStatus,
       cho: json['cho'] != null ? ShopCho.fromJson(json['cho']) : null,
     );
   }

@@ -105,12 +105,14 @@ class SellerInfo extends Equatable {
 /// State chính của Seller User
 class SellerUserState extends Equatable {
   final bool isLoading;
+  final bool isLoggedOut;
   final String? errorMessage;
   final SellerInfo? sellerInfo;
   final int currentTabIndex;
 
   const SellerUserState({
     this.isLoading = false,
+    this.isLoggedOut = false,
     this.errorMessage,
     this.sellerInfo,
     this.currentTabIndex = 4, // Tab Tài khoản mặc định
@@ -118,17 +120,19 @@ class SellerUserState extends Equatable {
 
   /// Factory tạo state ban đầu
   factory SellerUserState.initial() {
-    return const SellerUserState(isLoading: true);
+    return const SellerUserState(isLoading: true, isLoggedOut: false);
   }
 
   SellerUserState copyWith({
     bool? isLoading,
+    bool? isLoggedOut,
     String? errorMessage,
     SellerInfo? sellerInfo,
     int? currentTabIndex,
   }) {
     return SellerUserState(
       isLoading: isLoading ?? this.isLoading,
+      isLoggedOut: isLoggedOut ?? this.isLoggedOut,
       errorMessage: errorMessage,
       sellerInfo: sellerInfo ?? this.sellerInfo,
       currentTabIndex: currentTabIndex ?? this.currentTabIndex,
@@ -138,6 +142,7 @@ class SellerUserState extends Equatable {
   @override
   List<Object?> get props => [
         isLoading,
+        isLoggedOut,
         errorMessage,
         sellerInfo,
         currentTabIndex,

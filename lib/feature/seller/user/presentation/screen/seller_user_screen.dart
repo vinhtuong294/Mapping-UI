@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../../core/widgets/buyer_loading.dart';
+import '../../../../../core/config/route_name.dart';
 import '../cubit/user_cubit.dart';
 import '../cubit/user_state.dart';
 
@@ -27,6 +28,12 @@ class _SellerUserView extends StatelessWidget {
       backgroundColor: const Color(0xFFF8F9FA),
       body: BlocConsumer<SellerUserCubit, SellerUserState>(
         listener: (context, state) {
+          if (state.isLoggedOut) {
+            Navigator.of(context).pushNamedAndRemoveUntil(
+              RouteName.login,
+              (route) => false,
+            );
+          }
           if (state.errorMessage != null && state.errorMessage!.isNotEmpty) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(

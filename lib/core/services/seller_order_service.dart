@@ -3,11 +3,13 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/seller_order_model.dart';
 import '../config/app_config.dart';
+import 'auth/auth_service.dart';
 import 'auth/simple_auth_helper.dart';
 
 /// Service để quản lý đơn hàng của seller
 class SellerOrderService {
   static const String _baseUrl = AppConfig.sellerBaseUrl;
+  final AuthService _authService = AuthService();
 
   /// Lấy danh sách đơn hàng của seller
   Future<SellerOrdersResponse> getOrders({
@@ -52,6 +54,9 @@ class SellerOrderService {
       if (response.statusCode == 200) {
         final jsonData = json.decode(utf8.decode(response.bodyBytes));
         return SellerOrdersResponse.fromJson(jsonData);
+      } else if (response.statusCode == 401) {
+        await _authService.handleUnauthorized();
+        throw Exception('Phiên đăng nhập hết hạn');
       } else {
         debugPrint('❌ [SELLER ORDER] Failed body: ${response.body}');
         throw Exception('Failed to load orders: ${response.statusCode}');

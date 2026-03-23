@@ -2,10 +2,12 @@ import 'package:dio/dio.dart';
 import '../config/app_config.dart';
 import '../utils/app_logger.dart';
 import 'local_storage_service.dart';
+import 'auth/auth_service.dart';
 
 /// Interceptor để xử lý request/response và thêm token vào header
 class NetworkInterceptor extends Interceptor {
   final LocalStorageService _localStorageService;
+  final AuthService _authService = AuthService();
 
   NetworkInterceptor(this._localStorageService);
 
@@ -73,6 +75,9 @@ class NetworkInterceptor extends Interceptor {
         } catch (e) {
           // If retry fails, continue with error
         }
+      } else {
+        // Refresh failed or not available - Logout
+        await _authService.handleUnauthorized();
       }
     }
 

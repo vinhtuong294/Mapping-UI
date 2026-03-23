@@ -420,16 +420,39 @@ class _IngredientDetailView extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Tên gian hàng
-                  Text(
-                    seller.tenGianHang,
-                    style: const TextStyle(
-                      fontFamily: 'Roboto',
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1C1C1E),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          seller.tenGianHang,
+                          style: const TextStyle(
+                            fontFamily: 'Roboto',
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1C1C1E),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (!seller.isMoCua)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'ĐÓNG CỬA',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 8,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 4),
                   
@@ -890,6 +913,9 @@ class _IngredientDetailView extends StatelessWidget {
 
   Widget _buildBottomAction(BuildContext context, IngredientDetailState state) {
     final isOutOfStock = state.selectedSeller != null && !state.selectedSeller!.conHang;
+    final isClosed = state.selectedSeller != null && !state.selectedSeller!.isMoCua;
+    final isDisabled = isOutOfStock || isClosed;
+    final statusText = isClosed ? 'Đóng cửa' : 'Hết hàng';
 
     return Positioned(
       bottom: 0,
@@ -955,12 +981,12 @@ class _IngredientDetailView extends StatelessWidget {
                     // Decrease button
                     GestureDetector(
                       behavior: HitTestBehavior.opaque,
-                      onTap: () => context.read<IngredientDetailCubit>().decreaseQuantity(),
+                      onTap: isDisabled ? null : () => context.read<IngredientDetailCubit>().decreaseQuantity(),
                       child: Container(
                         width: 32,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: state.quantity > 1 
+                          color: (state.quantity > 1 && !isDisabled) 
                               ? const Color(0xFFF5F5F5) 
                               : const Color(0xFFE0E0E0),
                           borderRadius: const BorderRadius.only(
@@ -971,7 +997,7 @@ class _IngredientDetailView extends StatelessWidget {
                         child: Icon(
                           Icons.remove,
                           size: 18,
-                          color: state.quantity > 1 
+                          color: (state.quantity > 1 && !isDisabled) 
                               ? const Color(0xFF00B40F) 
                               : const Color(0xFF999999),
                         ),
@@ -986,11 +1012,11 @@ class _IngredientDetailView extends StatelessWidget {
                       child: Center(
                         child: Text(
                           '${state.quantity}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: 'Roboto',
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF000000),
+                            color: isDisabled ? Colors.grey : const Color(0xFF000000),
                           ),
                         ),
                       ),
@@ -999,21 +1025,21 @@ class _IngredientDetailView extends StatelessWidget {
                     // Increase button
                     GestureDetector(
                       behavior: HitTestBehavior.opaque,
-                      onTap: () => context.read<IngredientDetailCubit>().increaseQuantity(),
+                      onTap: isDisabled ? null : () => context.read<IngredientDetailCubit>().increaseQuantity(),
                       child: Container(
                         width: 32,
                         height: 40,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFF5F5F5),
-                          borderRadius: BorderRadius.only(
+                        decoration: BoxDecoration(
+                          color: isDisabled ? const Color(0xFFE0E0E0) : const Color(0xFFF5F5F5),
+                          borderRadius: const BorderRadius.only(
                             topRight: Radius.circular(4),
                             bottomRight: Radius.circular(4),
                           ),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.add,
                           size: 18,
-                          color: Color(0xFF00B40F),
+                          color: isDisabled ? const Color(0xFF999999) : const Color(0xFF00B40F),
                         ),
                       ),
                     ),
@@ -1025,10 +1051,10 @@ class _IngredientDetailView extends StatelessWidget {
               // Nút thêm vào giỏ hàng
               Expanded(
                 child: Material(
-                  color: isOutOfStock ? Colors.grey[200] : Colors.white,
+                  color: isDisabled ? Colors.grey[200] : Colors.white,
                   borderRadius: BorderRadius.circular(4),
                   child: InkWell(
-                    onTap: (isOutOfStock || state.isAddingToCart) 
+                    onTap: (isDisabled || state.isAddingToCart) 
                         ? null 
                         : () => context.read<IngredientDetailCubit>().addToCart(),
                     borderRadius: BorderRadius.circular(4),
@@ -1036,7 +1062,7 @@ class _IngredientDetailView extends StatelessWidget {
                       height: 40,
                       decoration: BoxDecoration(
                         border: Border.all(
-                          color: isOutOfStock ? Colors.grey : const Color(0xFF00B40F),
+                          color: isDisabled ? Colors.grey : const Color(0xFF00B40F),
                         ),
                         borderRadius: BorderRadius.circular(4),
                         color: Colors.transparent,
@@ -1052,13 +1078,13 @@ class _IngredientDetailView extends StatelessWidget {
                                 ),
                               )
                             : Text(
-                                isOutOfStock ? 'Hết hàng' : 'Thêm vào \ngiỏ hàng',
+                                isDisabled ? statusText : 'Thêm vào \ngiỏ hàng',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontFamily: 'Roboto',
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
-                                  color: isOutOfStock ? Colors.grey : const Color(0xFF00B40F),
+                                  color: isDisabled ? Colors.grey : const Color(0xFF00B40F),
                                   height: 1.1,
                                 ),
                               ),
@@ -1071,16 +1097,16 @@ class _IngredientDetailView extends StatelessWidget {
               // Nút mua ngay
               Expanded(
                 child: Material(
-                  color: isOutOfStock ? Colors.grey : const Color(0xFF2F8000),
+                  color: isDisabled ? Colors.grey : const Color(0xFF2F8000),
                   borderRadius: BorderRadius.circular(4),
                   child: InkWell(
-                    onTap: isOutOfStock ? null : () => context.read<IngredientDetailCubit>().buyNow(context),
+                    onTap: isDisabled ? null : () => context.read<IngredientDetailCubit>().buyNow(context),
                     borderRadius: BorderRadius.circular(4),
                     child: Container(
                       height: 40,
                       alignment: Alignment.center,
                       child: Text(
-                        isOutOfStock ? 'Hết hàng' : 'Mua ngay',
+                        isDisabled ? statusText : 'Mua ngay',
                         style: const TextStyle(
                           fontFamily: 'Roboto',
                           fontSize: 15,

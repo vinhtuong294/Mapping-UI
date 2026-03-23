@@ -54,6 +54,7 @@ class SellerModel {
   final String? ngayCapNhat;
   final int soLuongBan; // Số lượng: > 0 còn hàng, <= 0 hết hàng
   final String? donViBan;
+  final String tinhTrang; // "dang_mo_cua" hoặc "tam_nghi"
 
   SellerModel({
     required this.maGianHang,
@@ -66,10 +67,14 @@ class SellerModel {
     this.ngayCapNhat,
     required this.soLuongBan,
     this.donViBan,
+    this.tinhTrang = 'dang_mo_cua',
   });
 
   /// Kiểm tra còn hàng không (so_luong_ban > 0 = còn hàng)
   bool get conHang => soLuongBan > 0;
+
+  /// Kiểm tra gian hàng có đang mở cửa không
+  bool get isMoCua => tinhTrang == 'dang_mo_cua';
 
   factory SellerModel.fromJson(Map<String, dynamic> json) {
     return SellerModel(
@@ -83,6 +88,7 @@ class SellerModel {
       ngayCapNhat: json['ngay_cap_nhat']?.toString(),
       soLuongBan: (json['so_luong_ban'] as num?)?.toInt() ?? 0,
       donViBan: json['don_vi_ban']?.toString(),
+      tinhTrang: json['tinh_trang']?.toString() ?? 'dang_mo_cua',
     );
   }
 }
